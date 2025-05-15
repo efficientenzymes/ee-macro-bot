@@ -3,19 +3,32 @@ import os
 import asyncio
 import datetime
 
+# Print startup confirmation
+print("🚀 Starting EE Macro Bot...")
+
+# Load bot token from environment variable
 TOKEN = os.getenv("DISCORD_TOKEN")
 
+# Set up intents
 intents = discord.Intents.default()
-intents.message_content = True  # REQUIRED for reading emoji & slash
+intents.message_content = True  # Required for reading text and emoji
 client = discord.Client(intents=intents)
 
+# ✅ Event: on_ready
 @client.event
 async def on_ready():
     print(f"✅ Logged in as {client.user}")
 
+# ✅ Event: on_message (for !test)
 @client.event
 async def on_message(message):
+    if message.author == client.user:
+        return
 
+    if message.content.lower() == "!test":
+        await message.channel.send("📈 Macro Bot is online and working!")
+
+# ✅ Task: daily scheduled post at 7 AM EST
 async def daily_macro_post():
     await client.wait_until_ready()
     channel_id = int(os.getenv("CHANNEL_ID"))
@@ -36,16 +49,12 @@ async def daily_macro_post():
         if channel:
             await channel.send("📊 Good morning. Here's your daily macro update! (Charts coming soon...)")
         else:
-            print("❌ Could not find the channel.")
+            print("❌ Could not find the macro-dashboard channel.")
 
-        await asyncio.sleep(60)
+        await asyncio.sleep(60)  # wait a minute before looping
 
-    if message.author == client.user:
-        return
-
-    if message.content.lower() == "!test":
-        await message.channel.send("Macro bot is online and ready.")
-
+# ✅ Start scheduled task
 client.loop.create_task(daily_macro_post())
 
+# ✅ Start bot
 client.run(TOKEN)
