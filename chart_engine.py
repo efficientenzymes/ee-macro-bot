@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 
-# Optional: set your output directory
+# Output folder for charts
 output_dir = "charts"
 os.makedirs(output_dir, exist_ok=True)
 
-# List of (asset1, asset2, filename)
+# Define ratio chart pairs
 chart_pairs = [
     ("BTC-USD", "^VIX", "btc_vs_vix.png"),
     ("GLD", "SLV", "gold_vs_silver.png"),
@@ -16,15 +16,30 @@ chart_pairs = [
 ]
 
 def generate_ratio_chart(asset1, asset2, filename):
-    data1 = yf.download(asset1, period="5y")["Adj Close"]
-    data2 = yf.download(asset2, period="5y")["Adj Close"]
+    df1 = yf.download(asset1, period="5y", auto_adjust=False)
+    df2 = yf.download(asset2, period="5y", auto_adjust=False)
 
-    # Align both assets to same dates
+    # Extract adjusted close safely
+    if "Adj Close" in df1.columns:
+        data1 = df1["Adj Close"]
+    elif isinstance(df1, pd.Series):
+        data1 = df1
+    else:
+        raise ValueError(f"'Adj Close' not found for {asset1}")
+
+    if "Adj Close" in df2.columns:
+        data2 = df2["Adj Close"]
+    elif isinstance(df2, pd.Series):
+        data2 = df2
+    else:
+        raise ValueError(f"'Adj Close' not found for {asset2}")
+
+    # Merge and calculate ratio
     combined = pd.concat([data1, data2], axis=1, join="inner")
     combined.columns = [asset1, asset2]
     combined["Ratio"] = combined[asset1] / combined[asset2]
 
-    # Plot the ratio
+    # Plot chart
     plt.figure(figsize=(12, 6))
     plt.plot(combined.index, combined["Ratio"])
     plt.yscale("log")
@@ -32,6 +47,7 @@ def generate_ratio_chart(asset1, asset2, filename):
     plt.grid(True)
     plt.tight_layout()
 
+    # Save to file
     filepath = os.path.join(output_dir, filename)
     plt.savefig(filepath)
     plt.close()
