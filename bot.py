@@ -27,12 +27,10 @@ async def daily_macro_post():
         print(f"🕒 Waiting {wait_time / 60:.1f} minutes until next macro post...")
 
         await asyncio.sleep(wait_time)
-
-        if channel:
+if channel:
     await channel.send("📊 Good morning. Here's your daily macro update! (Charts coming soon...)")
 else:
     print("❌ Could not find the macro-dashboard channel.")
-
 
         await asyncio.sleep(60)
 
