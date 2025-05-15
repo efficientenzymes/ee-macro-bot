@@ -4,7 +4,8 @@ import os
 import asyncio
 import datetime
 import sys
-from chart_engine import generate_chart
+from chart_engine import generate_all_charts
+
 
 print("🚀 Starting EE Macro Bot...")
 print(f"🕒 Current time: {datetime.datetime.now()}")
@@ -94,16 +95,21 @@ async def on_message(message):
         print(f"📣 Received test command from {message.author}")
         await message.channel.send("📊 Macro Bot is online and working!")
 
-    if message.content.lower() == "!post":
-        print(f"📣 Received force post command from {message.author}")
-        try:
-            generate_chart()
-            await message.channel.send("📊 Forced macro update! Here's your BTC vs SPX chart:")
-            await message.channel.send(file=discord.File("btc_vs_spx.png"))
-            print("✅ Chart sent successfully.")
-        except Exception as e:
-            print(f"❌ Error generating or sending chart: {str(e)}")
-            await message.channel.send("⚠️ Failed to generate or send the chart.")
+   if message.content.lower() == "!post":
+    print(f"📣 Received force post command from {message.author}")
+    
+    try:
+        chart_files = generate_all_charts()
+        await message.channel.send("📊 Forced macro update! Here's the full chart set:")
+        
+        for chart in chart_files:
+            await message.channel.send(file=discord.File(chart))
+        
+        print("✅ All charts sent successfully.")
+    except Exception as e:
+        print(f"❌ Error generating or sending charts: {str(e)}")
+        await message.channel.send("⚠️ Failed to generate or send the charts.")
+
 
     if message.content.lower() == "!status":
         current_time = datetime.datetime.now()
