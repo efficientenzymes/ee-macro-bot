@@ -14,7 +14,10 @@ intents.message_content = True
 # ✅ Bot Class With setup_hook and internal daily task
 class MacroBot(discord.Client):
     async def setup_hook(self):
-        print("🧠 setup_hook: scheduling daily macro post")
+print("🧠 setup_hook started")
+await asyncio.sleep(2)
+print("✅ setup_hook scheduling daily task now")
+self.loop.create_task(self.daily_macro_post())
         self.loop.create_task(self.daily_macro_post())
 
     async def daily_macro_post(self):
