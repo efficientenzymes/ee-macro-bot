@@ -11,7 +11,7 @@ CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 intents = discord.Intents.default()
 intents.message_content = True
 
-# ✅ Task: Daily Macro Post
+# ✅ Daily post function
 async def daily_macro_post():
     await bot.wait_until_ready()
     channel = bot.get_channel(CHANNEL_ID)
@@ -27,20 +27,25 @@ async def daily_macro_post():
         print(f"🕒 Waiting {wait_time / 60:.1f} minutes until next macro post...")
 
         await asyncio.sleep(wait_time)
-if channel:
-    await channel.send("📊 Good morning. Here's your daily macro update! (Charts coming soon...)")
-else:
-    print("❌ Could not find the macro-dashboard channel.")
+
+        try:
+            if channel:
+                await channel.send("📊 Good morning. Here's your daily macro update! (Charts coming soon...)")
+                print("✅ Macro update sent.")
+            else:
+                print("❌ Could not find the macro-dashboard channel.")
+        except Exception as e:
+            print(f"🚨 Error sending macro post: {e}")
 
         await asyncio.sleep(60)
 
-# ✅ Bot Class With setup_hook
+# ✅ Bot class
 class MacroBot(discord.Client):
     async def setup_hook(self):
         print("🧠 setup_hook: scheduling daily macro post")
         self.loop.create_task(daily_macro_post())
 
-# ✅ Instantiate Bot
+# ✅ Bot instance
 bot = MacroBot(intents=intents)
 
 @bot.event
