@@ -3,6 +3,8 @@ import os
 import asyncio
 import datetime
 import sys
+from chart_engine import generate_chart
+import discord
 
 print("🚀 Starting EE Macro Bot...")
 print(f"🕒 Current time: {datetime.datetime.now()}")
@@ -121,7 +123,10 @@ async def on_message(message):
     # Add a command to force post immediately for testing
     if message.content.lower() == "!post":
         print(f"📣 Received force post command from {message.author}")
-        await message.channel.send("📊 Forced macro update! This is a test post.")
+    	generate_chart()  # This creates btc_vs_spx.png
+        await message.channel.send("📊 Forced macro update! Here's your BTC vs SPX chart:")
+	await message.channel.send(file=discord.File("btc_vs_spx.png"))
+
     
     # Add a command to display bot status
     if message.content.lower() == "!status":
