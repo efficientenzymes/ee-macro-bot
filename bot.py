@@ -12,8 +12,8 @@ print(f"🕒 Current time: {datetime.datetime.now()}")
 sys.stdout.reconfigure(line_buffering=True)
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-# Use the correct channel ID for #macro-dashboard
-CHANNEL_ID = int(os.getenv("CHANNEL_ID", "1372316620093001891"))
+# Hardcode the channel ID for #macro-dashboard
+CHANNEL_ID = 1372316620093001891  # This is the ID for #macro-dashboard
 # Add a test mode option with a short interval for testing
 TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
 TEST_INTERVAL_MINUTES = int(os.getenv("TEST_INTERVAL_MINUTES", "2"))
