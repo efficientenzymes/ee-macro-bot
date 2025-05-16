@@ -4,7 +4,7 @@ USE_GPT = os.getenv("USE_GPT", "false").lower() == "true"
 
 def generate_positioning_blurb(events, sentiment, is_weekly=False):
     if not USE_GPT:
-        print("[INFO] GPT disabled — using static blurb.")
+        print("[INFO] GPT disabled — using fallback blurb.")
         return "Markets calm. Stay tactical. Watch for rotation."
 
     try:
