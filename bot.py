@@ -8,6 +8,7 @@ from macro_data import (
     get_earnings_for_today,
     get_sentiment_summary
 )
+from positioning_summary import generate_positioning_blurb
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 intents = discord.Intents.default()
@@ -40,6 +41,11 @@ def generate_daily_macro_message():
     lines.append(f"• VIX: {sentiment['vix']} ({sentiment['vix_level']})")
     lines.append(f"• MOVE Index: {sentiment['move']} ({sentiment['move_level']})")
     lines.append(f"• Put/Call Ratio: {sentiment['put_call']} ({sentiment['put_call_level']})")
+
+    # GPT summary (safe call)
+    blurb = generate_positioning_blurb(macro_events, sentiment)
+    if blurb:
+        lines.append(f"\n🎯 {blurb}")
 
     return chart_paths, "\n".join(lines)
 

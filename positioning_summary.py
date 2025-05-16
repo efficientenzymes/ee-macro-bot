@@ -1,73 +1,35 @@
-import discord
-import os
-import pytz
-from datetime import datetime
-from chart_engine import generate_all_charts
-from macro_data import (
-    get_macro_events_for_today,
-    get_earnings_for_today,
-    get_sentiment_summary
-)
+vimport os
 
-TOKEN = os.getenv("DISCORD_TOKEN")
-intents = discord.Intents.default()
-intents.messages = True
-intents.guilds = True
-intents.message_content = True
-client = discord.Client(intents=intents)
+USE_GPT = os.getenv("USE_GPT", "false").lower() == "true"
 
-def generate_daily_macro_message():
-    eastern = pytz.timezone("US/Eastern")
-    now = datetime.now(eastern)
-    today = now.strftime("%A, %B %d")
+def generate_positioning_blurb(events, sentiment, is_weekly=False):
+    if not USE_GPT:
+        print("[INFO] GPT disabled — using static blurb.")
+        return "Markets calm. Stay tactical. Watch for rotation."
 
-    macro_events = get_macro_events_for_today()
-    earnings = get_earnings_for_today()
-    sentiment = get_sentiment_summary()
-    chart_paths = generate_all_charts()
+    try:
+        import openai
+        openai.api_key = os.getenv("OPENAI_API_KEY")
 
-    lines = []
-    lines.append(f"📅 **What to Watch Today – {today}**")
+        prompt = f"""You're a seasoned macro trader writing a 1–2 sentence summary.
+Today’s events: {', '.join(events[:5])}
+VIX={sentiment['vix']} ({sentiment['vix_level']}), MOVE={sentiment['move']} ({sentiment['move_level']}), Put/Call={sentiment['put_call']} ({sentiment['put_call_level']})
+Context: {'Weekly' if is_weekly else 'Daily'} outlook. Be blunt and real.
 
-    if macro_events:
-        lines.append("🗓️ Economic Events:")
-        lines.extend(f"• {e}" for e in macro_events)
-    if earnings:
-        lines.append("\n💰 Earnings Highlights:")
-        lines.extend(f"• {e}" for e in earnings)
+Examples:
+- CPI sets tone — any upside surprise could spark fade.
+- Bonds tame, but risk assets stretched. Rotation risk.
 
-    lines.append("\n📊 Sentiment Snapshot:")
-    lines.append(f"• VIX: {sentiment['vix']} ({sentiment['vix_level']})")
-    lines.append(f"• MOVE Index: {sentiment['move']} ({sentiment['move_level']})")
-    lines.append(f"• Put/Call Ratio: {sentiment['put_call']} ({sentiment['put_call_level']})")
+Write your line:"""
 
-    return chart_paths, "\n".join(lines)
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.5,
+            max_tokens=50,
+        )
+        return response.choices[0].message.content.strip()
 
-@client.event
-async def on_ready():
-    print(f"✅ Logged in as {client.user}")
-
-@client.event
-async def on_message(message):
-    if message.author == client.user:
-        return
-    content = message.content.lower()
-
-    if content == "!post":
-        await message.channel.send("⏳ Generating macro update...")
-        try:
-            chart_paths, summary = generate_daily_macro_message()
-            await message.channel.send(summary)
-            for path in chart_paths:
-                if os.path.isfile(path):
-                    with open(path, 'rb') as f:
-                        await message.channel.send(file=discord.File(f))
-            print("✅ Posted macro update.")
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            await message.channel.send(f"❌ Error: {e}")
-
-    elif content == "!status":
-        await message.channel.send("✅ Macro bot is online and running.")
-
-client.run(TOKEN)
+    except Exception as e:
+        print(f"[WARNING] GPT failed: {e}")
+        return "Market positioning unavailable today."
