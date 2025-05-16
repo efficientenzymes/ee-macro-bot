@@ -60,7 +60,8 @@ def generate_chart(ticker, name=None):
         return filepath
 
     except Exception as e:
-        logger.error(f"[ERROR] Chart failed for {ticker}: {e}")  # ✅ this is now fixed
+        logger.error(f"[ERROR] Chart failed for {ticker}: {repr(e)}")
+  # ✅ this is now fixed
         return None
 
 def generate_all_charts():
