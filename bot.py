@@ -2,6 +2,7 @@ import discord
 import os
 import pytz
 import logging
+import asyncio
 from datetime import datetime
 from chart_reboot import generate_all_charts
 from macro_data import (
@@ -74,12 +75,32 @@ def generate_daily_macro_message():
             blurb = "Positioning failed — check logs"
 
         lines.append(f"\n🎯 {blurb}")
-
         return chart_paths, "\n".join(lines)
 
     except Exception as e:
         logger.error(f"[ERROR] Exception in generate_daily_macro_message: {e}")
         raise
+
+async def generate_chart_summary_gpt():
+    try:
+        import openai
+        client = openai.OpenAI()
+        prompt = (
+            "You are a macro trader. Given charts across asset classes (equities, bonds, crypto, yields, dollar), "
+            "write a 1-sentence summary that explains whether these charts suggest a risk-on or risk-off mood. "
+            "Be sharp, no fluff. No apologies. Just give your read."
+        )
+        logger.info("[DEBUG] Calling GPT for chart summary...")
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.4,
+            max_tokens=50,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logger.warning(f"[WARNING] Chart GPT summary failed: {e}")
+        return None
 
 @client.event
 async def on_ready():
@@ -99,11 +120,22 @@ async def on_message(message):
         try:
             chart_paths, summary = generate_daily_macro_message()
             await message.channel.send(summary)
-            for path in chart_paths:
-                if os.path.isfile(path):
-                    with open(path, 'rb') as f:
-                        await message.channel.send(file=discord.File(f))
+
+            if chart_paths:
+                await message.channel.send("📈 **Tracking asset class spreads to monitor risk flows**")
+                for path in chart_paths:
+                    if os.path.isfile(path):
+                        with open(path, 'rb') as f:
+                            await message.channel.send(file=discord.File(f))
+                        await asyncio.sleep(1.5)  # Prevent Discord rate limiting
+
+                # GPT chart interpretation
+                chart_blurb = await generate_chart_summary_gpt()
+                if chart_blurb:
+                    await message.channel.send(f"🧠 {chart_blurb}")
+
             logger.info("✅ Posted macro update.")
+
         except Exception as e:
             logger.error("❌ Error in !post: %s", e)
             await message.channel.send(f"❌ Error: {e}")

@@ -1,11 +1,13 @@
 import matplotlib
-matplotlib.use("Agg")  # Required for headless environments like Render
+matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import yfinance as yf
 import pandas as pd
 import os
 import logging
+
+plt.style.use("dark_background")  # Dark mode theme
 
 logger = logging.getLogger("macro-bot")
 
@@ -39,8 +41,8 @@ def generate_chart(ticker, name=None):
     try:
         logger.info(f"[DEBUG] Plotting chart for {ticker}")
         plt.figure(figsize=(10, 4))
-        plt.plot(series.index, series.values)
-        plt.title(f"{name} ({ticker})")
+        plt.plot(series.index, series.values, linewidth=2.0)
+        plt.title(f"{name} ({ticker})", fontsize=12)
         plt.xlabel("Date")
         plt.ylabel("Price")
 
@@ -59,8 +61,12 @@ def generate_chart(ticker, name=None):
 
         if label:
             plt.annotate(label, xy=(0.99, 0.01), xycoords='axes fraction',
-                         ha='right', va='bottom', fontsize=10,
-                         bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgrey", alpha=0.5))
+                         ha='right', va='bottom', fontsize=9,
+                         bbox=dict(boxstyle="round,pad=0.3", facecolor="gray", alpha=0.4))
+
+        # ✅ Add subtle watermark
+        plt.annotate("@EEMacroBot", xy=(0.01, 0.01), xycoords='axes fraction',
+                     ha='left', va='bottom', fontsize=8, alpha=0.3, color="white")
 
         filepath = f"charts/{ticker.replace('^', '').replace('=', '')}.png"
         logger.info(f"[DEBUG] Saving chart to: {filepath}")
