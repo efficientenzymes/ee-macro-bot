@@ -46,7 +46,14 @@ def generate_chart(ticker, name=None):
 
         label = None
         try:
-            label = f"Day: {float(daily):.2f}%\nWeek: {float(weekly) if weekly is not None else 'n/a'}%\nMonth: {float(monthly):.2f}%"
+            daily_val = float(daily) if daily is not None else 'n/a'
+            weekly_val = float(weekly) if weekly is not None else 'n/a'
+            monthly_val = float(monthly) if monthly is not None else 'n/a'
+            label = (
+                f"Day: {daily_val if isinstance(daily_val, str) else f'{daily_val:.2f}'}%\n"
+                f"Week: {weekly_val if isinstance(weekly_val, str) else f'{weekly_val:.2f}'}%\n"
+                f"Month: {monthly_val if isinstance(monthly_val, str) else f'{monthly_val:.2f}'}%"
+            )
         except Exception as e:
             logger.warning(f"[WARNING] Skipping annotation for {ticker} due to: {repr(e)}")
 
