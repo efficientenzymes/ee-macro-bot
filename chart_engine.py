@@ -3,8 +3,11 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 
-output_dir = "charts"
-os.makedirs(output_dir, exist_ok=True)
+# Create output folders
+daily_dir = "charts"
+weekly_dir = "charts_weekly"
+os.makedirs(daily_dir, exist_ok=True)
+os.makedirs(weekly_dir, exist_ok=True)
 
 chart_pairs = [
     ("BTC-USD", "^VIX", "btc_vs_vix.png", "Tracks risk appetite: BTC outperforming VIX = risk-on"),
@@ -58,7 +61,7 @@ def generate_ratio_chart(asset1, asset2, filename, explanation):
              ha='right', va='bottom', transform=plt.gca().transAxes, alpha=0.6)
     plt.tight_layout()
 
-    filepath = os.path.join(output_dir, filename)
+    filepath = os.path.join(daily_dir, filename)
     plt.savefig(filepath)
     plt.close()
 
@@ -94,4 +97,67 @@ def generate_all_charts():
             print(f"❌ Error generating chart {filename}: {e}")
 
     summary = "\n📌 **Macro Watchlist Summary**\n" + "\n".join(signal_lines) if signal_lines else ""
+    return chart_files, summary
+
+# --- WEEKLY VERSION ---
+
+def compute_weekly_change(series):
+    if len(series) >= 6:
+        return (series.iloc[-1] / series.iloc[-6] - 1) * 100
+    return 0
+
+def generate_weekly_chart(asset1, asset2, filename, explanation):
+    df1 = yf.download(asset1, period="3mo", auto_adjust=False)
+    df2 = yf.download(asset2, period="3mo", auto_adjust=False)
+
+    data1 = df1["Adj Close"] if "Adj Close" in df1.columns else df1
+    data2 = df2["Adj Close"] if "Adj Close" in df2.columns else df2
+
+    combined = pd.concat([data1, data2], axis=1, join="inner")
+    combined.columns = [asset1, asset2]
+    combined["Ratio"] = combined[asset1] / combined[asset2]
+
+    weekly_change = compute_weekly_change(combined["Ratio"])
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(combined.index, combined["Ratio"], label="Ratio", color="blue")
+    plt.yscale("log")
+    plt.title(f"{asset1} / {asset2} (Weekly Log Scale)")
+    plt.grid(True)
+    plt.legend()
+    plt.text(0.99, 0.01, "EE MacroBot", fontsize=9, color="gray",
+             ha='right', va='bottom', transform=plt.gca().transAxes, alpha=0.6)
+    plt.tight_layout()
+
+    filepath = os.path.join(weekly_dir, filename)
+    plt.savefig(filepath)
+    plt.close()
+
+    caption = (
+        f"📘 **{asset1} / {asset2} (Weekly)**\n"
+        f"> **1W Change:** {weekly_change:+.2f}%\n"
+        f"> _{explanation}_"
+    )
+
+    highlight = None
+    if abs(weekly_change) > 2:
+        trend = "up" if weekly_change > 0 else "down"
+        highlight = f"{asset1}/{asset2} trending {trend} {weekly_change:+.2f}% this week"
+
+    return filepath, caption, highlight
+
+def generate_weekly_charts():
+    chart_files = []
+    highlights = []
+
+    for asset1, asset2, filename, explanation in chart_pairs:
+        try:
+            file, caption, note = generate_weekly_chart(asset1, asset2, filename, explanation)
+            chart_files.append((file, caption))
+            if note:
+                highlights.append(f"• {note}")
+        except Exception as e:
+            print(f"❌ Error generating weekly chart {filename}: {e}")
+
+    summary = "**📌 Weekly Macro Highlights**\n" + "\n".join(highlights) if highlights else ""
     return chart_files, summary
