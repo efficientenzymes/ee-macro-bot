@@ -23,7 +23,6 @@ intents.message_content = True
 
 client = discord.Client(intents=intents)
 
-# === Positioning GPT logic ===
 def generate_positioning_blurb(events, sentiment, is_weekly=False):
     prompt = f"""You're a seasoned macro trader writing a 1–2 sentence market prep summary. 
 Today’s macro events: {', '.join(events[:5])}
@@ -49,7 +48,6 @@ Now generate one in that tone:"""
         print(f"GPT error: {e}")
         return None
 
-# === Daily macro post ===
 def generate_daily_macro_message():
     eastern = pytz.timezone("US/Eastern")
     now = datetime.now(eastern)
@@ -85,7 +83,6 @@ def generate_daily_macro_message():
     summary_block = f"📅 **What to Watch Today – {today}**\n" + "\n".join(summary_lines)
     return chart_paths, summary_block
 
-# === Weekly macro post ===
 def generate_weekly_macro_message():
     eastern = pytz.timezone("US/Eastern")
     now = datetime.now(eastern)
@@ -115,30 +112,6 @@ def generate_weekly_macro_message():
     summary_block = f"📆 **Weekly Macro Recap – Week Ending {week_ending}**\n" + "\n".join(summary_lines)
     return chart_paths, summary_block
 
-# === Post logic ===
-async def post_daily_macro(channel):
-    try:
-        chart_paths, summary_block = generate_daily_macro_message()
-        await channel.send(summary_block)
-        for path in chart_paths:
-            with open(path, 'rb') as f:
-                await channel.send(file=discord.File(f))
-        print("✅ Daily macro post sent.")
-    except Exception as e:
-        print(f"❌ Error posting daily macro: {e}")
-
-async def post_weekly_macro(channel):
-    try:
-        chart_paths, summary_block = generate_weekly_macro_message()
-        await channel.send(summary_block)
-        for path in chart_paths:
-            with open(path, 'rb') as f:
-                await channel.send(file=discord.File(f))
-        print("✅ Weekly macro post sent.")
-    except Exception as e:
-        print(f"❌ Error posting weekly macro: {e}")
-
-# === Events ===
 @client.event
 async def on_ready():
     print(f"🤖 Logged in as {client.user} ({client.user.id})")
@@ -153,21 +126,44 @@ async def on_message(message):
     content = message.content.lower()
 
     if content == "!post":
-        await post_daily_macro(message.channel)
+        try:
+            await message.channel.send("⏳ Generating daily macro...")
+            chart_paths, summary_block = generate_daily_macro_message()
+            await message.channel.send(summary_block)
+            for path in chart_paths:
+                with open(path, 'rb') as f:
+                    await message.channel.send(file=discord.File(f))
+            print("✅ Daily macro posted successfully.")
+        except Exception as e:
+            await message.channel.send(f"❌ Error in !post: {e}")
+            print(f"[ERROR] Failed !post: {e}")
 
     elif content == "!weekly":
-        await post_weekly_macro(message.channel)
-
-    elif content == "!test":
-        await message.channel.send("🧪 Test message received.")
-        chart_paths, summary_block = generate_daily_macro_message()
-        await message.channel.send(summary_block)
-        for path in chart_paths:
-            with open(path, 'rb') as f:
-                await message.channel.send(file=discord.File(f))
+        try:
+            await message.channel.send("⏳ Generating weekly macro...")
+            chart_paths, summary_block = generate_weekly_macro_message()
+            await message.channel.send(summary_block)
+            for path in chart_paths:
+                with open(path, 'rb') as f:
+                    await message.channel.send(file=discord.File(f))
+            print("✅ Weekly macro posted successfully.")
+        except Exception as e:
+            await message.channel.send(f"❌ Error in !weekly: {e}")
+            print(f"[ERROR] Failed !weekly: {e}")
 
     elif content == "!status":
         await message.channel.send("✅ Macro bot is online and ready.")
 
-# === Start Bot ===
+    elif content == "!test":
+        await message.channel.send("🧪 Test message received.")
+        try:
+            chart_paths, summary_block = generate_daily_macro_message()
+            await message.channel.send(summary_block)
+            for path in chart_paths:
+                with open(path, 'rb') as f:
+                    await message.channel.send(file=discord.File(f))
+        except Exception as e:
+            await message.channel.send(f"❌ Error in !test: {e}")
+            print(f"[ERROR] Failed !test: {e}")
+
 client.run(TOKEN)
