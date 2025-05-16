@@ -36,6 +36,7 @@ Examples:
 
 Now generate one in that tone:"""
 
+    print("[DEBUG] Calling OpenAI ChatCompletion...")
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4",
@@ -43,9 +44,10 @@ Now generate one in that tone:"""
             temperature=0.5,
             max_tokens=50,
         )
+        print("[DEBUG] GPT response received")
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"GPT error: {e}")
+        print(f"[ERROR] GPT call failed: {e}")
         return None
 
 def generate_daily_macro_message():
