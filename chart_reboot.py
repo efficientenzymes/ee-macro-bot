@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use("Agg")  # Headless mode for Render
+matplotlib.use("Agg")  # Required for headless environments like Render
 
 import matplotlib.pyplot as plt
 import yfinance as yf
@@ -22,9 +22,9 @@ def fetch_data(ticker, period='1mo', interval='1d'):
 def calculate_change(series):
     if len(series) < 2:
         return None, None, None
-    daily = (series[-1] - series[-2]) / series[-2] * 100
-    weekly = (series[-1] - series[-6]) / series[-6] * 100 if len(series) >= 6 else None
-    monthly = (series[-1] - series[0]) / series[0] * 100
+    daily = (series.iloc[-1] - series.iloc[-2]) / series.iloc[-2] * 100
+    weekly = (series.iloc[-1] - series.iloc[-6]) / series.iloc[-6] * 100 if len(series) >= 6 else None
+    monthly = (series.iloc[-1] - series.iloc[0]) / series.iloc[0] * 100
     return daily, weekly, monthly
 
 def generate_chart(ticker, name=None):
