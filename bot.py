@@ -4,13 +4,16 @@ import pytz
 import openai
 from datetime import datetime
 from chart_engine import generate_all_charts, generate_weekly_charts
-from macro_data import get_macro_events_for_today, get_earnings_for_today, get_sentiment_summary, get_past_week_events
+from macro_data import (
+    get_macro_events_for_today,
+    get_earnings_for_today,
+    get_sentiment_summary,
+    get_past_week_events,
+)
 
 # Setup
 TOKEN = os.getenv("DISCORD_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-CHANNEL_NAME = "macro-dashboard"
-
 openai.api_key = OPENAI_API_KEY
 
 intents = discord.Intents.default()
@@ -113,12 +116,7 @@ def generate_weekly_macro_message():
     return chart_paths, summary_block
 
 # === Post logic ===
-async def post_daily_macro():
-    channel = discord.utils.get(client.get_all_channels(), name=CHANNEL_NAME)
-    if not channel:
-        print(f"❌ Channel '{CHANNEL_NAME}' not found.")
-        return
-
+async def post_daily_macro(channel):
     try:
         chart_paths, summary_block = generate_daily_macro_message()
         await channel.send(summary_block)
@@ -129,12 +127,7 @@ async def post_daily_macro():
     except Exception as e:
         print(f"❌ Error posting daily macro: {e}")
 
-async def post_weekly_macro():
-    channel = discord.utils.get(client.get_all_channels(), name=CHANNEL_NAME)
-    if not channel:
-        print(f"❌ Channel '{CHANNEL_NAME}' not found.")
-        return
-
+async def post_weekly_macro(channel):
     try:
         chart_paths, summary_block = generate_weekly_macro_message()
         await channel.send(summary_block)
@@ -145,23 +138,25 @@ async def post_weekly_macro():
     except Exception as e:
         print(f"❌ Error posting weekly macro: {e}")
 
-# === Bot events ===
+# === Events ===
 @client.event
 async def on_ready():
     print(f"🤖 Logged in as {client.user} ({client.user.id})")
 
 @client.event
 async def on_message(message):
+    print(f"[DEBUG] Got message: '{message.content}' from {message.author}")
+
     if message.author == client.user:
         return
 
     content = message.content.lower()
 
     if content == "!post":
-        await post_daily_macro()
+        await post_daily_macro(message.channel)
 
     elif content == "!weekly":
-        await post_weekly_macro()
+        await post_weekly_macro(message.channel)
 
     elif content == "!test":
         await message.channel.send("🧪 Test message received.")
@@ -174,5 +169,5 @@ async def on_message(message):
     elif content == "!status":
         await message.channel.send("✅ Macro bot is online and ready.")
 
-# === Start the bot ===
+# === Start Bot ===
 client.run(TOKEN)
