@@ -65,7 +65,9 @@ class MacroBot(discord.Client):
                     results = generate_all_charts()
                     for file_path, caption in results:
                         await channel.send(file=discord.File(file_path))
+                        await asyncio.sleep(1.1)
                         await channel.send(caption)
+                        await asyncio.sleep(1.1)
                     print(f"✅ Message #{message_count} sent.")
                 except Exception as e:
                     print(f"❌ Error sending message #{message_count}: {str(e)}")
@@ -103,7 +105,9 @@ async def on_message(message):
             results = generate_all_charts()
             for file_path, caption in results:
                 await message.channel.send(file=discord.File(file_path))
+                await asyncio.sleep(1.1)
                 await message.channel.send(caption)
+                await asyncio.sleep(1.1)
             print("✅ All charts and captions sent successfully.")
         except Exception as e:
             print(f"❌ Error generating or sending charts: {str(e)}")
