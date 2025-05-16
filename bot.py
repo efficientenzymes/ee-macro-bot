@@ -53,11 +53,58 @@ def generate_daily_macro_message():
         if macro_events:
             lines.append("🗓️ Economic Events:")
             lines.extend(f"• {e}" for e in macro_events)
+        else:
+            lines.append("🗓️ Economic Events:\n• No major events found.")
 
+        # GPT macro blurb
+        try:
+            if macro_events:
+                import openai
+                client = openai.OpenAI()
+                prompt = (
+                    "You're a macro strategist. Here is a list of today's economic events:\n" +
+                    "\n".join(macro_events) +
+                    "\n\nWrite 1 short sentence about what matters most for markets today."
+                )
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.4,
+                    max_tokens=50,
+                )
+                macro_blurb = response.choices[0].message.content.strip()
+                lines.append(f"\n🧠 {macro_blurb}")
+        except Exception as e:
+            logger.warning(f"[WARNING] GPT macro blurb failed: {e}")
+
+        # Earnings Section
+        lines.append("\n💰 Earnings Highlights:")
         if earnings:
-            lines.append("\n💰 Earnings Highlights:")
             lines.extend(f"• {e}" for e in earnings)
+        else:
+            lines.append("• No significant earnings today")
 
+        # GPT earnings blurb
+        try:
+            if earnings:
+                tickers = [e.split(":")[-1].strip() for e in earnings]
+                prompt = (
+                    f"You're a market analyst. Which of these companies might move the market today and why?\n" +
+                    ", ".join(tickers) +
+                    "\nRespond with one short sentence. Be sharp."
+                )
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.4,
+                    max_tokens=50,
+                )
+                earnings_blurb = response.choices[0].message.content.strip()
+                lines.append(f"\n🧠 {earnings_blurb}")
+        except Exception as e:
+            logger.warning(f"[WARNING] GPT earnings blurb failed: {e}")
+
+        # Sentiment
         lines.append("\n📊 Sentiment Snapshot:")
         lines.append(f"• VIX: {sentiment['vix']} ({sentiment['vix_level']})")
         lines.append(f"• MOVE Index: {sentiment['move']} ({sentiment['move_level']})")
@@ -90,8 +137,8 @@ async def generate_chart_summary_gpt():
             return None
 
         prompt = (
-            "You're a macro trader. Given spread charts like BTC/VIX, SPX/DXY, QQQ/IWM, summarize the market tone "
-            "in one short sentence. Focus on whether risk appetite is increasing or decreasing. Be blunt. No fluff."
+            "You're a macro trader. Based on chart spreads like BTC/VIX, SPX/DXY, QQQ/IWM, "
+            "summarize the market tone in one sharp sentence. Focus on risk-on vs risk-off."
         )
 
         logger.info("[DEBUG] Calling GPT for chart summary...")
