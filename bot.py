@@ -4,7 +4,7 @@ import pytz
 import logging
 import asyncio
 from datetime import datetime
-from chart_reboot_spread import generate_all_charts
+from chart_reboot_curated import generate_all_charts
 from macro_data import (
     get_macro_events_for_today,
     get_earnings_for_today,
