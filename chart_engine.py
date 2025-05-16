@@ -1,10 +1,14 @@
-import yfinance as yf
+import matplotlib
+matplotlib.use("Agg")  # Required for headless environments like Render
+
 import matplotlib.pyplot as plt
+import yfinance as yf
 import pandas as pd
 import os
 import logging
 
 logger = logging.getLogger("macro-bot")
+
 
 def fetch_data(ticker, period='1mo', interval='1d'):
     try:
