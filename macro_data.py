@@ -1,44 +1,50 @@
+import yfinance as yf
 import datetime
 import pytz
 
-# Mock economic calendar data
 def get_macro_events_for_today():
-    eastern = pytz.timezone("US/Eastern")
-    now = datetime.datetime.now(eastern)
-    if now.strftime("%Y-%m-%d") == "2025-05-16":
-        return [
-            "8:30 AM – CPI (m/m): Actual 0.3%",
-            "8:30 AM – Core CPI (y/y): Actual 3.6%",
-            "10:30 AM – EIA Crude Oil Inventories"
-        ]
-    return ["No major economic events scheduled for today"]
+    return [
+        "8:30 AM – Initial Jobless Claims",
+        "10:00 AM – Existing Home Sales"
+    ]
 
 def get_past_week_events():
     return [
         "Monday – Empire State Manufacturing",
-        "Tuesday – PPI & Retail Sales",
+        "Tuesday – Retail Sales",
         "Wednesday – CPI",
         "Thursday – Jobless Claims",
-        "Friday – UoM Sentiment"
+        "Friday – Leading Indicators"
     ]
 
-# Mock earnings data
 def get_earnings_for_today():
     return [
-        "Before Open: TGT, JD",
-        "After Close: CSCO, SONY"
+        "Before Open: WMT, HD",
+        "After Close: NVDA, AMAT"
     ]
 
-# Simplified sentiment summary with static data
 def get_sentiment_summary():
-    # Static values instead of fetching from yfinance
+    try:
+        vix = yf.Ticker("^VIX").history(period="2d")["Close"].iloc[-1]
+    except Exception as e:
+        print(f"VIX fetch error: {e}")
+        vix = 15.0
+
+    try:
+        move = yf.Ticker("^MOVE").history(period="2d")["Close"].iloc[-1]
+    except Exception as e:
+        print(f"MOVE fetch error: {e}")
+        move = 100.0
+
+    put_call = 0.74  # Static fallback
+
     sentiment = {
-        "vix": "17.25",
-        "move": "105",
-        "put_call": "0.74",
-        "vix_level": "Neutral",
-        "move_level": "Neutral",
-        "put_call_level": "Risk-on"
+        "vix": f"{vix:.2f}",
+        "move": f"{move:.0f}",
+        "put_call": f"{put_call:.2f}",
+        "vix_level": "Low" if vix < 15 else "Elevated" if vix > 20 else "Neutral",
+        "move_level": "Calm" if move < 95 else "Neutral" if move < 115 else "Elevated",
+        "put_call_level": "Risk-on" if put_call < 0.75 else "Neutral" if put_call < 1.0 else "Risk-off"
     }
-    
+
     return sentiment
