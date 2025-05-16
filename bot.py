@@ -26,35 +26,50 @@ client = discord.Client(intents=intents)
 def generate_daily_macro_message():
     logger.info("[DEBUG] generate_daily_macro_message running")
 
-    eastern = pytz.timezone("US/Eastern")
-    now = datetime.now(eastern)
-    today = now.strftime("%A, %B %d")
+    try:
+        eastern = pytz.timezone("US/Eastern")
+        now = datetime.now(eastern)
+        today = now.strftime("%A, %B %d")
 
-    macro_events = get_macro_events_for_today()
-    earnings = get_earnings_for_today()
-    sentiment = get_sentiment_summary()
-    chart_paths = generate_all_charts()
+        macro_events = get_macro_events_for_today()
+        logger.info(f"[DEBUG] Retrieved macro events: {macro_events}")
 
-    lines = []
-    lines.append(f"📅 **What to Watch Today – {today}**")
+        earnings = get_earnings_for_today()
+        logger.info(f"[DEBUG] Retrieved earnings: {earnings}")
 
-    if macro_events:
-        lines.append("🗓️ Economic Events:")
-        lines.extend(f"• {e}" for e in macro_events)
+        sentiment = get_sentiment_summary()
+        logger.info(f"[DEBUG] Retrieved sentiment: {sentiment}")
 
-    if earnings:
-        lines.append("\n💰 Earnings Highlights:")
-        lines.extend(f"• {e}" for e in earnings)
+        chart_paths = generate_all_charts()
+        logger.info(f"[DEBUG] Generated {len(chart_paths)} chart(s)")
 
-    lines.append("\n📊 Sentiment Snapshot:")
-    lines.append(f"• VIX: {sentiment['vix']} ({sentiment['vix_level']})")
-    lines.append(f"• MOVE Index: {sentiment['move']} ({sentiment['move_level']})")
-    lines.append(f"• Put/Call Ratio: {sentiment['put_call']} ({sentiment['put_call_level']})")
+        lines = []
+        lines.append(f"📅 **What to Watch Today – {today}**")
 
-    blurb = generate_positioning_blurb(macro_events, sentiment)
-    lines.append(f"\n🎯 {blurb}")
+        if macro_events:
+            lines.append("🗓️ Economic Events:")
+            lines.extend(f"• {e}" for e in macro_events)
 
-    return chart_paths, "\n".join(lines)
+        if earnings:
+            lines.append("\n💰 Earnings Highlights:")
+            lines.extend(f"• {e}" for e in earnings)
+
+        lines.append("\n📊 Sentiment Snapshot:")
+        lines.append(f"• VIX: {sentiment['vix']} ({sentiment['vix_level']})")
+        lines.append(f"• MOVE Index: {sentiment['move']} ({sentiment['move_level']})")
+        lines.append(f"• Put/Call Ratio: {sentiment['put_call']} ({sentiment['put_call_level']})")
+
+        logger.info("[DEBUG] About to call generate_positioning_blurb()")
+        blurb = generate_positioning_blurb(macro_events, sentiment)
+        logger.info(f"[DEBUG] Received blurb: {blurb}")
+
+        lines.append(f"\n🎯 {blurb}")
+
+        return chart_paths, "\n".join(lines)
+
+    except Exception as e:
+        logger.error(f"[ERROR] Exception in generate_daily_macro_message: {e}")
+        raise
 
 @client.event
 async def on_ready():
@@ -87,3 +102,4 @@ async def on_message(message):
         await message.channel.send("✅ Macro bot is online and running.")
 
 client.run(TOKEN)
+
