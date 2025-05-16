@@ -60,8 +60,9 @@ class MacroBot(discord.Client):
 
             if channel:
                 try:
+                    today_str = datetime.datetime.now().strftime("%A, %B %d, %Y")
+                    await channel.send(f"📅 **EE Daily Macro Report – {today_str}**\nHere’s today’s snapshot of key macro ratios and breakouts.")
                     results = generate_all_charts()
-                    await channel.send("📊 **EE MacroBot: Daily Macro Ratios**")
                     for file_path, caption in results:
                         await channel.send(file=discord.File(file_path))
                         await channel.send(caption)
@@ -97,8 +98,9 @@ async def on_message(message):
     if message.content.lower() == "!post":
         print(f"📣 Received force post command from {message.author}")
         try:
+            today_str = datetime.datetime.now().strftime("%A, %B %d, %Y")
+            await message.channel.send(f"📅 **EE Daily Macro Report – {today_str}**\nHere’s today’s snapshot of key macro ratios and breakouts.")
             results = generate_all_charts()
-            await message.channel.send("📊 **EE MacroBot: Daily Macro Ratios**")
             for file_path, caption in results:
                 await message.channel.send(file=discord.File(file_path))
                 await message.channel.send(caption)
