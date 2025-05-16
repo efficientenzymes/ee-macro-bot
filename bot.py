@@ -60,8 +60,12 @@ def generate_daily_macro_message():
         lines.append(f"• Put/Call Ratio: {sentiment['put_call']} ({sentiment['put_call_level']})")
 
         logger.info("[DEBUG] About to call generate_positioning_blurb()")
-        blurb = generate_positioning_blurb(macro_events, sentiment)
-        logger.info(f"[DEBUG] Received blurb: {blurb}")
+        try:
+            blurb = generate_positioning_blurb(macro_events, sentiment)
+            logger.info(f"[DEBUG] Received blurb: {blurb}")
+        except Exception as e:
+            logger.error(f"[ERROR] Exception in generate_positioning_blurb: {e}")
+            blurb = "Positioning failed — check logs"
 
         lines.append(f"\n🎯 {blurb}")
 
