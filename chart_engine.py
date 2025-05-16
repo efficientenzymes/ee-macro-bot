@@ -69,14 +69,29 @@ def generate_ratio_chart(asset1, asset2, filename, explanation):
         f"**1M:** {changes.get('1m', 0):+.2f}%\n"
         f"> _{explanation}_"
     )
-    return filepath, caption
+
+    # Summary logic
+    signal = None
+    if breakout_mask.iloc[-1]:
+        signal = f"{asset1}/{asset2} breakout 🔺"
+    elif abs(changes.get("1d", 0)) > 1.5:
+        direction = "up" if changes["1d"] > 0 else "down"
+        signal = f"{asset1}/{asset2} moving {direction} {changes['1d']:+.2f}%"
+
+    return filepath, caption, signal
 
 def generate_all_charts():
     chart_files = []
+    signal_lines = []
+
     for asset1, asset2, filename, explanation in chart_pairs:
         try:
-            path, caption = generate_ratio_chart(asset1, asset2, filename, explanation)
+            path, caption, signal = generate_ratio_chart(asset1, asset2, filename, explanation)
             chart_files.append((path, caption))
+            if signal:
+                signal_lines.append(f"• {signal}")
         except Exception as e:
             print(f"❌ Error generating chart {filename}: {e}")
-    return chart_files
+
+    summary = "\n📌 **Macro Watchlist Summary**\n" + "\n".join(signal_lines) if signal_lines else ""
+    return chart_files, summary
