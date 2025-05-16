@@ -15,7 +15,11 @@ def generate_positioning_blurb(events, sentiment, is_weekly=False):
     try:
         import openai
         key = os.getenv("OPENAI_API_KEY")
-        print(f"[DEBUG] GPT Key: {key[:8]}..." if key else "[ERROR] No API key")
+        if not key:
+            print("[ERROR] OPENAI_API_KEY is missing.")
+            return "API key not set."
+
+        print(f"[DEBUG] GPT Key starts with: {key[:8]}...")
         openai.api_key = key
 
         prompt = f"""You're a seasoned macro trader writing a 1–2 sentence summary.
