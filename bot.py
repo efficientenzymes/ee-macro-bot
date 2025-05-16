@@ -7,7 +7,6 @@ from chart_engine import generate_all_charts
 
 print("🚀 Starting EE Macro Bot...")
 print(f"🕒 Current time: {datetime.datetime.now()}")
-
 sys.stdout.reconfigure(line_buffering=True)
 
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -61,10 +60,11 @@ class MacroBot(discord.Client):
 
             if channel:
                 try:
-                    chart_files = generate_all_charts()
-                    await channel.send("📊 Good morning! Here's your macro chart set:")
-                    for chart in chart_files:
-                        await channel.send(file=discord.File(chart))
+                    results = generate_all_charts()
+                    await channel.send("📊 **EE MacroBot: Daily Macro Ratios**")
+                    for file_path, caption in results:
+                        await channel.send(file=discord.File(file_path))
+                        await channel.send(caption)
                     print(f"✅ Message #{message_count} sent.")
                 except Exception as e:
                     print(f"❌ Error sending message #{message_count}: {str(e)}")
@@ -97,11 +97,12 @@ async def on_message(message):
     if message.content.lower() == "!post":
         print(f"📣 Received force post command from {message.author}")
         try:
-            chart_files = generate_all_charts()
-            await message.channel.send("📊 Forced macro update! Here's the full chart set:")
-            for chart in chart_files:
-                await message.channel.send(file=discord.File(chart))
-            print("✅ All charts sent successfully.")
+            results = generate_all_charts()
+            await message.channel.send("📊 **EE MacroBot: Daily Macro Ratios**")
+            for file_path, caption in results:
+                await message.channel.send(file=discord.File(file_path))
+                await message.channel.send(caption)
+            print("✅ All charts and captions sent successfully.")
         except Exception as e:
             print(f"❌ Error generating or sending charts: {str(e)}")
             await message.channel.send("⚠️ Failed to generate or send the charts.")
