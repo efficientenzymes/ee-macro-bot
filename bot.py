@@ -3,7 +3,7 @@ import os
 import pytz
 import logging
 from datetime import datetime
-from chart_engine import generate_all_charts
+from chart import generate_all_charts
 from macro_data import (
     get_macro_events_for_today,
     get_earnings_for_today,
