@@ -1,14 +1,17 @@
 import os
 import logging
+import openai
 
 logger = logging.getLogger("macro-bot")
 
 USE_GPT = os.getenv("USE_GPT", "false").lower() == "true"
 
+# ✅ New OpenAI client
+client = openai.OpenAI()
+
 def generate_positioning_blurb(events, sentiment, is_weekly=False):
     logger.info("[DEBUG] generate_positioning_blurb running")
 
-    # Sanity check the inputs
     try:
         assert isinstance(events, list), "events is not a list"
         assert isinstance(sentiment, dict), "sentiment is not a dict"
@@ -21,14 +24,12 @@ def generate_positioning_blurb(events, sentiment, is_weekly=False):
         return "Markets calm. Stay tactical. Watch for rotation."
 
     try:
-        import openai
         key = os.getenv("OPENAI_API_KEY")
         if not key:
             logger.error("[ERROR] OPENAI_API_KEY is missing.")
             return "API key not set."
 
         logger.info(f"[DEBUG] GPT Key starts with: {key[:8]}...")
-        openai.api_key = key
 
         prompt = f"""You're a seasoned macro trader writing a 1–2 sentence summary.
 Today’s events: {', '.join(events[:5])}
@@ -42,7 +43,7 @@ Examples:
 Write your line:"""
 
         logger.info("[DEBUG] Sending prompt to GPT...")
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.5,
