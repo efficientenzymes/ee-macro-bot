@@ -1,25 +1,29 @@
 import os
+import logging
+
+logger = logging.getLogger("macro-bot")
 
 USE_GPT = os.getenv("USE_GPT", "false").lower() == "true"
 
 def generate_positioning_blurb(events, sentiment, is_weekly=False):
-    print("[DEBUG] generate_positioning_blurb running")
-    print(f"[DEBUG] USE_GPT = {USE_GPT}")
-    print(f"[DEBUG] Events = {events}")
-    print(f"[DEBUG] Sentiment = {sentiment}")
+    logger.info("[DEBUG] generate_positioning_blurb running")
+    logger.info(f"[DEBUG] USE_GPT = {USE_GPT}")
+    logger.info(f"[DEBUG] Events = {events}")
+    logger.info(f"[DEBUG] Sentiment = {sentiment}")
 
     if not USE_GPT:
-        print("[INFO] GPT disabled — using fallback blurb.")
+        logger.info("[INFO] GPT disabled — using fallback blurb.")
         return "Markets calm. Stay tactical. Watch for rotation."
 
     try:
         import openai
         key = os.getenv("OPENAI_API_KEY")
+
         if not key:
-            print("[ERROR] OPENAI_API_KEY is missing.")
+            logger.error("[ERROR] OPENAI_API_KEY is missing.")
             return "API key not set."
 
-        print(f"[DEBUG] GPT Key starts with: {key[:8]}...")
+        logger.info(f"[DEBUG] GPT Key starts with: {key[:8]}...")
         openai.api_key = key
 
         prompt = f"""You're a seasoned macro trader writing a 1–2 sentence summary.
@@ -33,16 +37,16 @@ Examples:
 
 Write your line:"""
 
-        print("[DEBUG] Sending prompt to GPT...")
+        logger.info("[DEBUG] Sending prompt to GPT...")
         response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.5,
             max_tokens=50
         )
-        print("[DEBUG] GPT response received.")
+        logger.info("[DEBUG] GPT response received.")
         return response.choices[0].message.content.strip()
 
     except Exception as e:
-        print(f"[WARNING] GPT failed: {e}")
+        logger.warning(f"[WARNING] GPT failed: {e}")
         return "Market positioning unavailable today."
