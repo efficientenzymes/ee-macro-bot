@@ -42,11 +42,11 @@ def generate_daily_macro_message():
         logger.info(f"[DEBUG] Retrieved sentiment: {sentiment}")
 
         try:
-            chart_paths = generate_all_charts()
-            logger.info(f"[DEBUG] Generated {len(chart_paths)} chart(s)")
+            chart_output = generate_all_charts()
+            logger.info(f"[DEBUG] Generated {len(chart_output)} chart(s)")
         except Exception as e:
             logger.error(f"[ERROR] generate_all_charts() failed: {e}")
-            chart_paths = []
+            chart_output = []
 
         lines = []
         lines.append(f"📅 **What to Watch Today – {today}**")
@@ -75,7 +75,7 @@ def generate_daily_macro_message():
             blurb = "Positioning failed — check logs"
 
         lines.append(f"\n🎯 {blurb}")
-        return chart_paths, "\n".join(lines)
+        return chart_output, "\n".join(lines)
 
     except Exception as e:
         logger.error(f"[ERROR] Exception in generate_daily_macro_message: {e}")
@@ -86,9 +86,8 @@ async def generate_chart_summary_gpt():
         import openai
         client = openai.OpenAI()
         prompt = (
-            "You are a macro trader. Given charts across asset classes (equities, bonds, crypto, yields, dollar), "
-            "write a 1-sentence summary that explains whether these charts suggest a risk-on or risk-off mood. "
-            "Be sharp, no fluff. No apologies. Just give your read."
+            "You are a macro trader. Based on charts showing spreads like BTC/VIX, SPX/DXY, QQQ/IWM, "
+            "summarize the big picture risk tone (risk-on/risk-off) in one sentence."
         )
         logger.info("[DEBUG] Calling GPT for chart summary...")
         response = client.chat.completions.create(
@@ -118,16 +117,16 @@ async def on_message(message):
     if content == "!post":
         await message.channel.send("⏳ Generating macro update...")
         try:
-            chart_paths, summary = generate_daily_macro_message()
+            chart_output, summary = generate_daily_macro_message()
             await message.channel.send(summary)
 
-            if chart_paths:
+            if chart_output:
                 await message.channel.send("📈 **Tracking asset class spreads to monitor risk flows**")
-                for path in chart_paths:
+                for path, text in chart_output:
                     if os.path.isfile(path):
-                        with open(path, 'rb') as f:
-                            await message.channel.send(file=discord.File(f))
-                        await asyncio.sleep(1.5)  # Prevent Discord rate limiting
+                        await message.channel.send(file=discord.File(path))
+                        await message.channel.send(text)
+                        await asyncio.sleep(1.5)
 
                 # GPT chart interpretation
                 chart_blurb = await generate_chart_summary_gpt()

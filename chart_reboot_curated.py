@@ -33,7 +33,7 @@ def calculate_trends(series):
         logger.error(f"[ERROR] calculate_trends failed: {repr(e)}")
         return None, None, None
 
-def generate_chart(spread_name, series, daily, weekly, monthly, blurb, yscale="log"):
+def generate_chart(spread_name, series, yscale="log"):
     try:
         logger.info(f"[DEBUG] Plotting chart for {spread_name}")
         plt.figure(figsize=(10, 4))
@@ -44,16 +44,7 @@ def generate_chart(spread_name, series, daily, weekly, monthly, blurb, yscale="l
         if yscale == "log":
             plt.yscale("log")
 
-        label = (
-            f"1D: {daily:.2f}% | 1W: {weekly:.2f}% | 1M: {monthly:.2f}%\n{blurb}"
-            if all(x is not None for x in [daily, weekly, monthly])
-            else blurb
-        )
-        plt.annotate(label, xy=(0.01, 0.01), xycoords='axes fraction',
-                     ha='left', va='bottom', fontsize=9,
-                     bbox=dict(boxstyle="round,pad=0.3", facecolor="gray", alpha=0.4))
-
-        # Watermark
+        # Watermark only
         plt.annotate("@EEMacroBot", xy=(0.99, 0.01), xycoords='axes fraction',
                      ha='right', va='bottom', fontsize=8, alpha=0.3, color="white")
 
@@ -81,7 +72,7 @@ def generate_all_charts():
         "BTC / GLD": ("BTC-USD", "GLD", "Digital vs traditional store of value — macro hedge rotation")
     }
 
-    chart_paths = []
+    chart_output = []
 
     for name, (numerator, denominator, blurb) in spreads.items():
         logger.info(f"[DEBUG] Generating spread: {name}")
@@ -100,9 +91,10 @@ def generate_all_charts():
         ratio = ratio_series.iloc[:, 0] / ratio_series.iloc[:, 1]
         daily, weekly, monthly = calculate_trends(ratio)
 
-        path = generate_chart(name, ratio, daily, weekly, monthly, blurb)
-        if path:
-            chart_paths.append(path)
+        chart_path = generate_chart(name, ratio)
+        if chart_path:
+            text = f"📊 **{name}**\n1D: {daily:.2f}% | 1W: {weekly:.2f}% | 1M: {monthly:.2f}%\n{blurb}"
+            chart_output.append((chart_path, text))
 
-    logger.info(f"[DEBUG] Finished generating {len(chart_paths)} curated charts")
-    return chart_paths
+    logger.info(f"[DEBUG] Finished generating {len(chart_output)} curated charts")
+    return chart_output
