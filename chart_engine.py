@@ -79,7 +79,7 @@ def generate_weekly_charts():
         "^RUT": "Russell 2000",
         "DXY": "Dollar Index",
         "TLT": "20Y Bonds",
-        "^PUTCALL": "Put/Call Ratio"
+        "^PCALL": "Put/Call Ratio"
     }
     
     chart_paths = []
