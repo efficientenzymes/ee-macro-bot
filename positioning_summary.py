@@ -3,6 +3,8 @@ import os
 USE_GPT = os.getenv("USE_GPT", "false").lower() == "true"
 
 def generate_positioning_blurb(events, sentiment, is_weekly=False):
+    print("[DEBUG] generate_positioning_blurb running")
+
     if not USE_GPT:
         print("[INFO] GPT disabled — using fallback blurb.")
         return "Markets calm. Stay tactical. Watch for rotation."
@@ -22,12 +24,14 @@ Examples:
 
 Write your line:"""
 
+        print("[DEBUG] Sending GPT prompt...")
         response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.5,
             max_tokens=50,
         )
+        print("[DEBUG] GPT response received.")
         return response.choices[0].message.content.strip()
 
     except Exception as e:
