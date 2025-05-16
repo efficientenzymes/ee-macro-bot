@@ -1,6 +1,7 @@
 import discord
 import os
 import pytz
+import logging
 from datetime import datetime
 from chart_engine import generate_all_charts
 from macro_data import (
@@ -9,6 +10,10 @@ from macro_data import (
     get_sentiment_summary
 )
 from positioning_summary import generate_positioning_blurb
+
+# ✅ Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("macro-bot")
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -19,7 +24,7 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 
 def generate_daily_macro_message():
-    print("[DEBUG] generate_daily_macro_message running")
+    logger.info("[DEBUG] generate_daily_macro_message running")
 
     eastern = pytz.timezone("US/Eastern")
     now = datetime.now(eastern)
@@ -53,11 +58,11 @@ def generate_daily_macro_message():
 
 @client.event
 async def on_ready():
-    print(f"✅ Logged in as {client.user}")
+    logger.info("✅ Logged in as %s", client.user)
 
 @client.event
 async def on_message(message):
-    print(f"[DEBUG] Received message: {message.content}")  # ✅ THIS LINE IS NEW
+    logger.info("[DEBUG] Received message: %s", message.content)
 
     if message.author == client.user:
         return
@@ -73,9 +78,9 @@ async def on_message(message):
                 if os.path.isfile(path):
                     with open(path, 'rb') as f:
                         await message.channel.send(file=discord.File(f))
-            print("✅ Posted macro update.")
+            logger.info("✅ Posted macro update.")
         except Exception as e:
-            print(f"❌ Error in !post: {e}")
+            logger.error("❌ Error in !post: %s", e)
             await message.channel.send(f"❌ Error: {e}")
 
     elif content == "!status":
