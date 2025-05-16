@@ -1,31 +1,39 @@
 import requests
 import datetime
+import os
 import logging
 
 logger = logging.getLogger("macro-bot")
 
 def get_earnings_for_today():
     try:
-        today = datetime.datetime.now().strftime("%Y-%m-%d")
-        url = f"https://query1.finance.yahoo.com/v7/finance/calendar/earnings?day={today}"
-        headers = {"User-Agent": "Mozilla/5.0"}
+        api_key = os.getenv("FINNHUB_API_KEY")
+        if not api_key:
+            raise ValueError("FINNHUB_API_KEY is not set.")
 
-        response = requests.get(url, headers=headers)
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        url = f"https://finnhub.io/api/v1/calendar/earnings?from={today}&to={today}&token={api_key}"
+
+        response = requests.get(url)
         if response.status_code != 200:
             raise ValueError(f"Failed to fetch earnings: HTTP {response.status_code}")
 
         data = response.json()
-        earnings = data.get("finance", {}).get("result", [])
-        if not earnings:
-            return []
+        earnings = data.get("earningsCalendar", [])
 
         results = []
-        for item in earnings:
-            for report in item.get("earnings", []):
-                ticker = report.get("symbol", "N/A")
-                time = report.get("startdatetime", "").split("T")[-1].replace("Z", "")
-                slot = "Before Open" if "08" in time else "After Close"
-                results.append(f"{slot}: {ticker}")
+        for report in earnings:
+            symbol = report.get("symbol")
+            time = report.get("time", "").lower()
+            if not symbol:
+                continue
+
+            slot = (
+                "Before Open" if "bmo" in time else
+                "After Close" if "amc" in time else
+                "Time N/A"
+            )
+            results.append(f"{slot}: {symbol}")
 
         return sorted(results)
 
