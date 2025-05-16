@@ -4,7 +4,6 @@ import pytz
 
 # === Mock economic calendar (replace with real API later if needed) ===
 def get_macro_events_for_today():
-    # Hardcoded CPI example
     eastern = pytz.timezone("US/Eastern")
     now = datetime.datetime.now(eastern)
     if now.strftime("%Y-%m-%d") == "2025-05-15":
@@ -16,7 +15,6 @@ def get_macro_events_for_today():
     return []
 
 def get_past_week_events():
-    # Mock example of past macro catalysts — replace with real events later
     return [
         "Monday – Empire State Manufacturing",
         "Tuesday – PPI & Retail Sales",
@@ -27,7 +25,6 @@ def get_past_week_events():
 
 # === Mock earnings (can be linked to Earnings Whisper or Yahoo API later) ===
 def get_earnings_for_today():
-    # Example for 2025-05-15
     return [
         "Before Open: TGT, JD",
         "After Close: CSCO, SONY"
@@ -37,11 +34,21 @@ def get_earnings_for_today():
 def get_sentiment_summary():
     try:
         vix = yf.Ticker("^VIX").history(period="2d")["Close"].iloc[-1]
-        move = yf.Ticker("^MOVE").history(period="2d")["Close"].iloc[-1]
-        put_call = yf.Ticker("^PUTCALL").history(period="2d")["Close"].iloc[-1]
     except Exception as e:
-        print(f"Sentiment fetch error: {e}")
-        vix, move, put_call = 15.0, 100.0, 0.75  # fallback values
+        print(f"VIX fetch error: {e}")
+        vix = 15.0
+
+    try:
+        move = yf.Ticker("^MOVE").history(period="2d")["Close"].iloc[-1]
+    except Exception as e:
+        print(f"MOVE fetch error: {e}")
+        move = 100.0
+
+    try:
+        put_call = yf.Ticker("PCALL").history(period="2d")["Close"].iloc[-1]
+    except Exception as e:
+        print(f"Put/Call fetch error: {e}")
+        put_call = 0.75
 
     sentiment = {
         "vix": f"{vix:.2f}",
