@@ -8,7 +8,7 @@ def fetch_data(ticker, period='1mo', interval='1d'):
         data = yf.download(ticker, period=period, interval=interval, progress=False)
         return data['Close']
     except Exception as e:
-        print(f"Error fetching data for {ticker}: {e}")
+        print(f"[ERROR] Failed to fetch {ticker}: {e}")
         return pd.Series()
 
 def calculate_change(series):
@@ -22,7 +22,7 @@ def calculate_change(series):
 def generate_chart(ticker, name=None):
     series = fetch_data(ticker)
     if series.empty:
-        return None
+        raise ValueError(f"No data for {ticker}")
 
     daily, weekly, monthly = calculate_change(series)
     name = name or ticker
@@ -33,12 +33,13 @@ def generate_chart(ticker, name=None):
     plt.xlabel("Date")
     plt.ylabel("Price")
 
-    label = f"Day: {daily:.2f}%\nWeek: {weekly:.2f}%\nMonth: {monthly:.2f}%" if daily is not None else "N/A"
-    plt.annotate(label, xy=(0.99, 0.01), xycoords='axes fraction',
-                 ha='right', va='bottom', fontsize=10,
-                 bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgrey", alpha=0.5))
+    if daily is not None:
+        label = f"Day: {daily:.2f}%\nWeek: {weekly:.2f}%\nMonth: {monthly:.2f}%"
+        plt.annotate(label, xy=(0.99, 0.01), xycoords='axes fraction',
+                     ha='right', va='bottom', fontsize=10,
+                     bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgrey", alpha=0.5))
 
-    filepath = f"charts/{ticker}.png"
+    filepath = f"charts/{ticker.replace('=', '').replace('^', '')}.png"
     os.makedirs("charts", exist_ok=True)
     plt.tight_layout()
     plt.savefig(filepath)
@@ -61,15 +62,19 @@ def generate_all_charts():
         "^TNX": "10Y Yield",
         "^IRX": "3M Yield",
         "^FVX": "5Y Yield",
-        "^TYX": "30Y Yield",
-        "^PUTCALL": "Put/Call Ratio"
+        "^TYX": "30Y Yield"
+        # ^PUTCALL removed due to broken feed
     }
 
     chart_paths = []
     for ticker, name in assets.items():
-        path = generate_chart(ticker, name)
-        if path:
-            chart_paths.append(path)
+        print(f"[DEBUG] Generating chart for: {ticker} ({name})")
+        try:
+            path = generate_chart(ticker, name)
+            if path:
+                chart_paths.append(path)
+        except Exception as e:
+            print(f"[ERROR] Chart for {ticker} failed: {e}")
     return chart_paths
 
 def generate_weekly_charts():
@@ -78,14 +83,15 @@ def generate_weekly_charts():
         "^NDX": "Nasdaq 100",
         "^RUT": "Russell 2000",
         "DXY": "Dollar Index",
-        "TLT": "20Y Bonds",
-        "^PCALL": "Put/Call Ratio"
+        "TLT": "20Y Bonds"
     }
-    
+
     chart_paths = []
     for ticker, name in tickers.items():
+        print(f"[DEBUG] Generating weekly chart for: {ticker} ({name})")
         series = fetch_data(ticker, period='3mo', interval='1d')
         if series.empty:
+            print(f"[WARNING] Skipping weekly chart: {ticker} has no data.")
             continue
 
         plt.figure(figsize=(10, 4))
@@ -93,7 +99,7 @@ def generate_weekly_charts():
         plt.title(f"{name} Weekly View ({ticker})")
         plt.xlabel("Date")
         plt.ylabel("Price")
-        filepath = f"charts/weekly_{ticker}.png"
+        filepath = f"charts/weekly_{ticker.replace('=', '').replace('^', '')}.png"
         os.makedirs("charts", exist_ok=True)
         plt.tight_layout()
         plt.savefig(filepath)
