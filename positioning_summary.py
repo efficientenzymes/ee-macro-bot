@@ -12,6 +12,7 @@ def generate_positioning_blurb(events, sentiment, is_weekly=False):
     try:
         import openai
         openai.api_key = os.getenv("OPENAI_API_KEY")
+        print(f"[DEBUG] Using GPT key starts with: {openai.api_key[:8]}...")
 
         prompt = f"""You're a seasoned macro trader writing a 1–2 sentence summary.
 Today’s events: {', '.join(events[:5])}
@@ -24,16 +25,6 @@ Examples:
 
 Write your line:"""
 
-        print("[DEBUG] Sending GPT prompt...")
+        print("[DEBUG] Sending prompt to GPT...")
         response = openai.ChatCompletion.create(
             model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.5,
-            max_tokens=50,
-        )
-        print("[DEBUG] GPT response received.")
-        return response.choices[0].message.content.strip()
-
-    except Exception as e:
-        print(f"[WARNING] GPT failed: {e}")
-        return "Market positioning unavailable today."
