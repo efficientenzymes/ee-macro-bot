@@ -51,3 +51,128 @@ def generate_daily_macro_message():
     eastern = pytz.timezone("US/Eastern")
     now = datetime.now(eastern)
     today = now.strftime("%A, %B %d")
+
+    macro_section = get_macro_events_for_today()
+    earnings_section = get_earnings_for_today()
+    sentiment = get_sentiment_summary()
+    chart_paths = generate_all_charts()
+
+    summary_lines = []
+
+    if macro_section:
+        summary_lines.append("🗓️ Economic Events:")
+        for event in macro_section[:5]:
+            summary_lines.append(f"• {event}")
+    else:
+        summary_lines.append("🗓️ Economic Events: None scheduled")
+
+    if earnings_section:
+        summary_lines.append("\n💰 Earnings Highlights:")
+        summary_lines.extend(f"• {line}" for line in earnings_section[:5])
+
+    summary_lines.append("\n📊 Sentiment Snap:")
+    summary_lines.append(f"• VIX: {sentiment['vix']} ({sentiment['vix_level']})")
+    summary_lines.append(f"• Put/Call Ratio: {sentiment['put_call']} ({sentiment['put_call_level']})")
+    summary_lines.append(f"• MOVE Index: {sentiment['move']} ({sentiment['move_level']})")
+
+    gpt_blurb = generate_positioning_blurb(macro_section, sentiment)
+    if gpt_blurb:
+        summary_lines.append(f"\n🎯 {gpt_blurb}")
+
+    summary_block = f"📅 **What to Watch Today – {today}**\n" + "\n".join(summary_lines)
+    return chart_paths, summary_block
+
+# === Weekly macro post ===
+def generate_weekly_macro_message():
+    eastern = pytz.timezone("US/Eastern")
+    now = datetime.now(eastern)
+    week_ending = now.strftime("%A, %B %d")
+
+    macro_section = get_past_week_events()
+    sentiment = get_sentiment_summary()
+    chart_paths = generate_weekly_charts()
+
+    summary_lines = []
+
+    summary_lines.append("🗓️ Key Events This Week:")
+    if macro_section:
+        summary_lines.extend(f"• {event}" for event in macro_section[:7])
+    else:
+        summary_lines.append("• No major events logged.")
+
+    summary_lines.append("\n📊 Current Sentiment:")
+    summary_lines.append(f"• VIX: {sentiment['vix']} ({sentiment['vix_level']})")
+    summary_lines.append(f"• Put/Call Ratio: {sentiment['put_call']} ({sentiment['put_call_level']})")
+    summary_lines.append(f"• MOVE Index: {sentiment['move']} ({sentiment['move_level']})")
+
+    gpt_blurb = generate_positioning_blurb(macro_section, sentiment, is_weekly=True)
+    if gpt_blurb:
+        summary_lines.append(f"\n🧠 {gpt_blurb}")
+
+    summary_block = f"📆 **Weekly Macro Recap – Week Ending {week_ending}**\n" + "\n".join(summary_lines)
+    return chart_paths, summary_block
+
+# === Post logic ===
+async def post_daily_macro():
+    channel = discord.utils.get(client.get_all_channels(), name=CHANNEL_NAME)
+    if not channel:
+        print(f"❌ Channel '{CHANNEL_NAME}' not found.")
+        return
+
+    try:
+        chart_paths, summary_block = generate_daily_macro_message()
+        await channel.send(summary_block)
+        for path in chart_paths:
+            with open(path, 'rb') as f:
+                await channel.send(file=discord.File(f))
+        print("✅ Daily macro post sent.")
+    except Exception as e:
+        print(f"❌ Error posting daily macro: {e}")
+
+async def post_weekly_macro():
+    channel = discord.utils.get(client.get_all_channels(), name=CHANNEL_NAME)
+    if not channel:
+        print(f"❌ Channel '{CHANNEL_NAME}' not found.")
+        return
+
+    try:
+        chart_paths, summary_block = generate_weekly_macro_message()
+        await channel.send(summary_block)
+        for path in chart_paths:
+            with open(path, 'rb') as f:
+                await channel.send(file=discord.File(f))
+        print("✅ Weekly macro post sent.")
+    except Exception as e:
+        print(f"❌ Error posting weekly macro: {e}")
+
+# === Bot events ===
+@client.event
+async def on_ready():
+    print(f"🤖 Logged in as {client.user} ({client.user.id})")
+
+@client.event
+async def on_message(message):
+    if message.author == client.user:
+        return
+
+    content = message.content.lower()
+
+    if content == "!post":
+        await post_daily_macro()
+
+    elif content == "!weekly":
+        await post_weekly_macro()
+
+    elif content == "!test":
+        await message.channel.send("🧪 Test message received.")
+        chart_paths, summary_block = generate_daily_macro_message()
+        await message.channel.send(summary_block)
+        for path in chart_paths:
+            with open(path, 'rb') as f:
+                await message.channel.send(file=discord.File(f))
+
+    elif content == "!status":
+        await message.channel.send("✅ Macro bot is online and ready.")
+
+# === Start the bot ===
+client.run(TOKEN)
