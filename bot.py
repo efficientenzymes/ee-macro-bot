@@ -11,6 +11,7 @@ from macro_data import (
 from positioning_summary import generate_positioning_blurb
 
 TOKEN = os.getenv("DISCORD_TOKEN")
+
 intents = discord.Intents.default()
 intents.messages = True
 intents.guilds = True
@@ -33,6 +34,7 @@ def generate_daily_macro_message():
     if macro_events:
         lines.append("🗓️ Economic Events:")
         lines.extend(f"• {e}" for e in macro_events)
+
     if earnings:
         lines.append("\n💰 Earnings Highlights:")
         lines.extend(f"• {e}" for e in earnings)
@@ -42,7 +44,7 @@ def generate_daily_macro_message():
     lines.append(f"• MOVE Index: {sentiment['move']} ({sentiment['move_level']})")
     lines.append(f"• Put/Call Ratio: {sentiment['put_call']} ({sentiment['put_call_level']})")
 
-    # GPT summary (safe call)
+    # GPT summary fallback safe
     blurb = generate_positioning_blurb(macro_events, sentiment)
     if blurb:
         lines.append(f"\n🎯 {blurb}")
@@ -57,6 +59,7 @@ async def on_ready():
 async def on_message(message):
     if message.author == client.user:
         return
+
     content = message.content.lower()
 
     if content == "!post":
