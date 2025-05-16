@@ -20,20 +20,26 @@ def get_earnings_for_today():
 
         data = response.json()
         earnings = data.get("earningsCalendar", [])
-
         results = []
+
         for report in earnings:
             symbol = report.get("symbol")
             time = report.get("time", "").lower()
-            if not symbol:
+            if not symbol or ("bmo" not in time and "amc" not in time):
                 continue
 
-            slot = (
-                "Before Open" if "bmo" in time else
-                "After Close" if "amc" in time else
-                "Time N/A"
-            )
-            results.append(f"{slot}: {symbol}")
+            # Get company profile to check market cap
+            profile_url = f"https://finnhub.io/api/v1/stock/profile2?symbol={symbol}&token={api_key}"
+            profile_response = requests.get(profile_url)
+            if profile_response.status_code != 200:
+                continue
+
+            profile = profile_response.json()
+            market_cap = profile.get("marketCapitalization", 0)
+
+            if market_cap and market_cap >= 10000:  # 10B
+                slot = "Before Open" if "bmo" in time else "After Close"
+                results.append(f"{slot}: {symbol}")
 
         return sorted(results)
 
