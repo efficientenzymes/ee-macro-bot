@@ -45,10 +45,10 @@ def get_sentiment_summary():
         move = 100.0
 
     try:
-        put_call = yf.Ticker("PCALL").history(period="2d")["Close"].iloc[-1]
+        raise Exception("PCALL feed unavailable")
     except Exception as e:
-        print(f"Put/Call fetch error: {e}")
-        put_call = 0.75
+        print(f"Put/Call fetch fallback: {e}")
+        put_call = 0.74  # Hardcoded fallback value
 
     sentiment = {
         "vix": f"{vix:.2f}",
