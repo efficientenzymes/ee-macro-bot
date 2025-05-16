@@ -9,7 +9,6 @@ import logging
 
 logger = logging.getLogger("macro-bot")
 
-
 def fetch_data(ticker, period='1mo', interval='1d'):
     try:
         data = yf.download(ticker, period=period, interval=interval, progress=False)
@@ -61,7 +60,7 @@ def generate_chart(ticker, name=None):
         return filepath
 
     except Exception as e:
-        logger.error(f"[ERROR] Chart failed for {ticker}: {e}")
+        logger.error(f"[ERROR] Chart failed for {ticker}: {e}")  # <== this is the fix
         return None
 
 def generate_all_charts():
