@@ -44,7 +44,7 @@ def generate_daily_macro_message():
     lines.append(f"• MOVE Index: {sentiment['move']} ({sentiment['move_level']})")
     lines.append(f"• Put/Call Ratio: {sentiment['put_call']} ({sentiment['put_call_level']})")
 
-    # GPT summary fallback safe
+    # GPT or fallback blurb
     blurb = generate_positioning_blurb(macro_events, sentiment)
     if blurb:
         lines.append(f"\n🎯 {blurb}")
@@ -80,5 +80,3 @@ async def on_message(message):
         await message.channel.send("✅ Macro bot is online and running.")
 
 client.run(TOKEN)
-
-# Trigger rebuild
