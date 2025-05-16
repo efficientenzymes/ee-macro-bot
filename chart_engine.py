@@ -34,6 +34,7 @@ def generate_chart(ticker, name=None):
     name = name or ticker
 
     try:
+        logger.info(f"[DEBUG] Plotting chart for {ticker}")
         plt.figure(figsize=(10, 4))
         plt.plot(series.index, series.values)
         plt.title(f"{name} ({ticker})")
@@ -47,14 +48,16 @@ def generate_chart(ticker, name=None):
                          bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgrey", alpha=0.5))
 
         filepath = f"charts/{ticker.replace('^', '').replace('=', '')}.png"
+        logger.info(f"[DEBUG] Saving chart to: {filepath}")
         os.makedirs("charts", exist_ok=True)
         plt.tight_layout()
         plt.savefig(filepath)
         plt.close()
+        logger.info(f"[DEBUG] Saved chart for {ticker}")
         return filepath
 
     except Exception as e:
-        logger.error(f"[ERROR] Failed to generate chart for {ticker}: {e}")
+        logger.error(f"[ERROR] Chart failed for {ticker}: {e}")
         return None
 
 def generate_all_charts():
