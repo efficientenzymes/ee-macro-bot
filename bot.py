@@ -81,4 +81,3 @@ async def on_message(message):
         await message.channel.send("✅ Macro bot is online and running.")
 
 client.run(TOKEN)
-#no
