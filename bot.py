@@ -12,7 +12,6 @@ from macro_data import (
 )
 from positioning_summary import generate_positioning_blurb
 
-# ✅ Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("macro-bot")
 
@@ -85,10 +84,16 @@ async def generate_chart_summary_gpt():
     try:
         import openai
         client = openai.OpenAI()
+        key = os.getenv("OPENAI_API_KEY")
+        if not key:
+            logger.warning("[WARNING] OPENAI_API_KEY not set.")
+            return None
+
         prompt = (
-            "You are a macro trader. Based on charts showing spreads like BTC/VIX, SPX/DXY, QQQ/IWM, "
-            "summarize the big picture risk tone (risk-on/risk-off) in one sentence."
+            "You're a macro trader. Given spread charts like BTC/VIX, SPX/DXY, QQQ/IWM, summarize the market tone "
+            "in one short sentence. Focus on whether risk appetite is increasing or decreasing. Be blunt. No fluff."
         )
+
         logger.info("[DEBUG] Calling GPT for chart summary...")
         response = client.chat.completions.create(
             model="gpt-4",
@@ -97,6 +102,7 @@ async def generate_chart_summary_gpt():
             max_tokens=50,
         )
         return response.choices[0].message.content.strip()
+
     except Exception as e:
         logger.warning(f"[WARNING] Chart GPT summary failed: {e}")
         return None
