@@ -4,6 +4,9 @@ USE_GPT = os.getenv("USE_GPT", "false").lower() == "true"
 
 def generate_positioning_blurb(events, sentiment, is_weekly=False):
     print("[DEBUG] generate_positioning_blurb running")
+    print(f"[DEBUG] USE_GPT = {USE_GPT}")
+    print(f"[DEBUG] Events = {events}")
+    print(f"[DEBUG] Sentiment = {sentiment}")
 
     if not USE_GPT:
         print("[INFO] GPT disabled — using fallback blurb.")
@@ -11,8 +14,9 @@ def generate_positioning_blurb(events, sentiment, is_weekly=False):
 
     try:
         import openai
-        openai.api_key = os.getenv("OPENAI_API_KEY")
-        print(f"[DEBUG] Using GPT key starts with: {openai.api_key[:8]}...")
+        key = os.getenv("OPENAI_API_KEY")
+        print(f"[DEBUG] GPT Key: {key[:8]}..." if key else "[ERROR] No API key")
+        openai.api_key = key
 
         prompt = f"""You're a seasoned macro trader writing a 1–2 sentence summary.
 Today’s events: {', '.join(events[:5])}
@@ -28,9 +32,7 @@ Write your line:"""
         print("[DEBUG] Sending prompt to GPT...")
         response = openai.ChatCompletion.create(
             model="gpt-4",
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
+            messages=[{"role": "user", "content": prompt}],
             temperature=0.5,
             max_tokens=50
         )
