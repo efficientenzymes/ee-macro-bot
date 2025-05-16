@@ -28,3 +28,15 @@ Write your line:"""
         print("[DEBUG] Sending prompt to GPT...")
         response = openai.ChatCompletion.create(
             model="gpt-4",
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.5,
+            max_tokens=50
+        )
+        print("[DEBUG] GPT response received.")
+        return response.choices[0].message.content.strip()
+
+    except Exception as e:
+        print(f"[WARNING] GPT failed: {e}")
+        return "Market positioning unavailable today."
