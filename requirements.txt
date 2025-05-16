@@ -1,5 +1,6 @@
-discord.py==2.3.2
+discord.py
+openai
+yfinance
 matplotlib
 pandas
-yfinance
-openai
+pytz

@@ -20,7 +20,7 @@ client = discord.Client(intents=intents)
 
 def generate_daily_macro_message():
     print("[DEBUG] generate_daily_macro_message running")
-    
+
     eastern = pytz.timezone("US/Eastern")
     now = datetime.now(eastern)
     today = now.strftime("%A, %B %d")
@@ -46,7 +46,6 @@ def generate_daily_macro_message():
     lines.append(f"• MOVE Index: {sentiment['move']} ({sentiment['move_level']})")
     lines.append(f"• Put/Call Ratio: {sentiment['put_call']} ({sentiment['put_call_level']})")
 
-    # ✅ Ensure GPT is called
     blurb = generate_positioning_blurb(macro_events, sentiment)
     lines.append(f"\n🎯 {blurb}")
 
