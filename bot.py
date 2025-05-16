@@ -3,7 +3,7 @@ import os
 import asyncio
 import datetime
 import sys
-from chart_engine import generate_all_charts
+from chart_engine import generate_all_charts, generate_weekly_charts
 
 print("🚀 Starting EE Macro Bot...")
 print(f"🕒 Current time: {datetime.datetime.now()}")
@@ -14,9 +14,6 @@ CHANNEL_ID = 1372316620093001891
 TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
 TEST_INTERVAL_MINUTES = int(os.getenv("TEST_INTERVAL_MINUTES", "2"))
 
-print(f"🔑 Using channel ID: {CHANNEL_ID}")
-print(f"🧪 Test mode: {TEST_MODE}")
-
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -24,58 +21,73 @@ class MacroBot(discord.Client):
     async def setup_hook(self):
         print("🧠 setup_hook started")
         await asyncio.sleep(2)
-        print("🔄 setup_hook scheduling daily task now")
         self.loop.create_task(self.daily_macro_post())
+        self.loop.create_task(self.weekly_macro_post())
 
     async def daily_macro_post(self):
         await self.wait_until_ready()
-        print(f"✅ Bot is ready! Looking for channel with ID: {CHANNEL_ID}")
         channel = self.get_channel(CHANNEL_ID)
-
-        if channel:
-            print(f"🔗 Successfully connected to channel: #{channel.name}")
-        else:
-            print(f"❌ ERROR: Could not find channel with ID {CHANNEL_ID}.")
-
-        message_count = 0
 
         while not self.is_closed():
             now = datetime.datetime.now()
-
             if TEST_MODE:
                 wait_time = TEST_INTERVAL_MINUTES * 60
-                print(f"🧪 TEST MODE: Will post in {TEST_INTERVAL_MINUTES} minutes.")
             else:
                 target_time = now.replace(hour=7, minute=0, second=0, microsecond=0)
                 if now > target_time:
                     target_time += datetime.timedelta(days=1)
                 wait_time = (target_time - now).total_seconds()
-                next_post_time = now + datetime.timedelta(seconds=wait_time)
-                print(f"⏳ Waiting {wait_time / 60:.1f} minutes until next macro post at {next_post_time}...")
 
             await asyncio.sleep(wait_time)
-
-            message_count += 1
-            print(f"📝 Attempting to send message #{message_count} at {datetime.datetime.now()}")
 
             if channel:
                 try:
                     today_str = datetime.datetime.now().strftime("%A, %B %d, %Y")
                     await channel.send(f"📅 **EE Daily Macro Report – {today_str}**\nHere’s today’s snapshot of key macro ratios and breakouts.")
-                    results = generate_all_charts()
+                    results, summary = generate_all_charts()
                     for file_path, caption in results:
                         await channel.send(file=discord.File(file_path))
                         await asyncio.sleep(1.1)
                         await channel.send(caption)
                         await asyncio.sleep(1.1)
-                    print(f"✅ Message #{message_count} sent.")
+                    if summary:
+                        await channel.send(summary)
                 except Exception as e:
-                    print(f"❌ Error sending message #{message_count}: {str(e)}")
-            else:
-                print(f"❌ Still could not find the channel with ID {CHANNEL_ID}")
-                channel = self.get_channel(CHANNEL_ID)
+                    print(f"❌ Error sending daily report: {e}")
 
             await asyncio.sleep(5)
+
+    async def weekly_macro_post(self):
+        await self.wait_until_ready()
+        channel = self.get_channel(CHANNEL_ID)
+
+        while not self.is_closed():
+            now = datetime.datetime.now()
+            target_time = now.replace(hour=10, minute=0, second=0, microsecond=0)
+            while now.weekday() != 5 or now > target_time:  # Saturday
+                await asyncio.sleep(3600)
+                now = datetime.datetime.now()
+                target_time = now.replace(hour=10, minute=0, second=0, microsecond=0)
+
+            wait_time = (target_time - now).total_seconds()
+            await asyncio.sleep(wait_time)
+
+            if channel:
+                try:
+                    today_str = datetime.datetime.now().strftime("%A, %B %d, %Y")
+                    await channel.send(f"📘 **EE Weekly Macro Recap – {today_str}**\nHere's a look at the major trends over the past week:")
+                    charts, summary = generate_weekly_charts()
+                    for file_path, caption in charts:
+                        await channel.send(file=discord.File(file_path))
+                        await asyncio.sleep(1.1)
+                        await channel.send(caption)
+                        await asyncio.sleep(1.1)
+                    if summary:
+                        await channel.send(summary)
+                except Exception as e:
+                    print(f"❌ Error sending weekly report: {e}")
+
+            await asyncio.sleep(86400)
 
 bot = MacroBot(intents=intents)
 
@@ -94,23 +106,22 @@ async def on_message(message):
         return
 
     if message.content.lower() == "!test":
-        print(f"📣 Received test command from {message.author}")
         await message.channel.send("📊 Macro Bot is online and working!")
 
     if message.content.lower() == "!post":
-        print(f"📣 Received force post command from {message.author}")
         try:
             today_str = datetime.datetime.now().strftime("%A, %B %d, %Y")
             await message.channel.send(f"📅 **EE Daily Macro Report – {today_str}**\nHere’s today’s snapshot of key macro ratios and breakouts.")
-            results = generate_all_charts()
+            results, summary = generate_all_charts()
             for file_path, caption in results:
                 await message.channel.send(file=discord.File(file_path))
                 await asyncio.sleep(1.1)
                 await message.channel.send(caption)
                 await asyncio.sleep(1.1)
-            print("✅ All charts and captions sent successfully.")
+            if summary:
+                await message.channel.send(summary)
         except Exception as e:
-            print(f"❌ Error generating or sending charts: {str(e)}")
+            print(f"❌ Error during !post: {e}")
             await message.channel.send("⚠️ Failed to generate or send the charts.")
 
     if message.content.lower() == "!status":
@@ -125,9 +136,9 @@ async def on_message(message):
         status_message = (
             f"**Bot Status**\n"
             f"• Current time: {current_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
-            f"• Next scheduled post: {target_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
-            f"• Time until next post: {hours}h {minutes}m {seconds}s\n"
-            f"• Channel ID set to: {CHANNEL_ID}\n"
+            f"• Next daily post: {target_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            f"• Time until post: {hours}h {minutes}m {seconds}s\n"
+            f"• Channel ID: {CHANNEL_ID}\n"
             f"• Test mode: {TEST_MODE}"
         )
         await message.channel.send(status_message)
@@ -136,6 +147,6 @@ try:
     print("🔄 Starting bot...")
     bot.run(TOKEN)
 except discord.errors.LoginFailure:
-    print("❌ ERROR: Invalid Discord token. Please check your DISCORD_TOKEN environment variable.")
+    print("❌ Invalid Discord token. Check DISCORD_TOKEN env variable.")
 except Exception as e:
-    print(f"❌ ERROR: Failed to start bot: {str(e)}")
+    print(f"❌ Bot startup error: {e}")
