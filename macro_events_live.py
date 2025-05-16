@@ -1,4 +1,3 @@
-
 import requests
 import datetime
 import logging
@@ -8,11 +7,14 @@ logger = logging.getLogger("macro-bot")
 
 def get_macro_events_for_today():
     try:
-        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
         url = "https://www.investing.com/economic-calendar/"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers)
+        headers = {
+            "User-Agent": "Mozilla/5.0",
+            "Accept-Language": "en-US,en;q=0.9"
+        }
 
+        response = requests.get(url, headers=headers)
         if response.status_code != 200:
             raise ValueError(f"Failed to fetch macro events: HTTP {response.status_code}")
 
@@ -25,14 +27,17 @@ def get_macro_events_for_today():
             if not date_attr or not date_attr.startswith(today):
                 continue
 
-            time = row.select_one(".first.left.time") or row.select_one(".time")
+            time = row.select_one(".time")
             event = row.select_one(".event")
             if time and event:
                 time_str = time.get_text(strip=True)
                 event_str = event.get_text(strip=True)
-                events.append(f"{time_str} – {event_str}")
+                if event_str:
+                    events.append(f"{time_str} – {event_str}")
 
-        return events[:10]  # limit to top 10 if needed
+        if not events:
+            logger.warning("[WARNING] No macro events found for today.")
+        return events[:10]
 
     except Exception as e:
         logger.error(f"[ERROR] get_macro_events_for_today failed: {e}")
