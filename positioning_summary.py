@@ -7,9 +7,13 @@ USE_GPT = os.getenv("USE_GPT", "false").lower() == "true"
 
 def generate_positioning_blurb(events, sentiment, is_weekly=False):
     logger.info("[DEBUG] generate_positioning_blurb running")
-    logger.info(f"[DEBUG] USE_GPT = {USE_GPT}")
-    logger.info(f"[DEBUG] Events = {events}")
-    logger.info(f"[DEBUG] Sentiment = {sentiment}")
+
+    try:
+        assert isinstance(events, list), "events is not a list"
+        assert isinstance(sentiment, dict), "sentiment is not a dict"
+    except AssertionError as e:
+        logger.error(f"[FATAL] Bad inputs passed to positioning_blurb: {e}")
+        return "Positioning error: invalid input structure"
 
     if not USE_GPT:
         logger.info("[INFO] GPT disabled — using fallback blurb.")
@@ -18,7 +22,6 @@ def generate_positioning_blurb(events, sentiment, is_weekly=False):
     try:
         import openai
         key = os.getenv("OPENAI_API_KEY")
-
         if not key:
             logger.error("[ERROR] OPENAI_API_KEY is missing.")
             return "API key not set."
