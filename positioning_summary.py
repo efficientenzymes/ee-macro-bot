@@ -8,6 +8,7 @@ USE_GPT = os.getenv("USE_GPT", "false").lower() == "true"
 def generate_positioning_blurb(events, sentiment, is_weekly=False):
     logger.info("[DEBUG] generate_positioning_blurb running")
 
+    # Sanity check the inputs
     try:
         assert isinstance(events, list), "events is not a list"
         assert isinstance(sentiment, dict), "sentiment is not a dict"
