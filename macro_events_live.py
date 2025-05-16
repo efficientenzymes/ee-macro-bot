@@ -7,7 +7,7 @@ logger = logging.getLogger("macro-bot")
 
 def get_macro_events_for_today():
     try:
-        today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+        today = datetime.datetime.now().strftime("%b %d")  # Format like "May 16"
         url = "https://www.investing.com/economic-calendar/"
         headers = {
             "User-Agent": "Mozilla/5.0",
@@ -23,15 +23,18 @@ def get_macro_events_for_today():
 
         events = []
         for row in rows:
-            date_attr = row.get("data-event-datetime")
-            if not date_attr or not date_attr.startswith(today):
+            date_text = row.get("data-event-datetime")
+            if not date_text:
                 continue
 
-            time = row.select_one(".time")
-            event = row.select_one(".event")
-            if time and event:
-                time_str = time.get_text(strip=True)
-                event_str = event.get_text(strip=True)
+            if not date_text.startswith(datetime.datetime.utcnow().strftime("%Y-%m-%d")):
+                continue
+
+            time_cell = row.select_one(".time")
+            event_cell = row.select_one(".event")
+            if time_cell and event_cell:
+                time_str = time_cell.get_text(strip=True)
+                event_str = event_cell.get_text(strip=True)
                 if event_str:
                     events.append(f"{time_str} – {event_str}")
 
