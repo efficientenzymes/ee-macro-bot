@@ -6,7 +6,9 @@ import os
 def fetch_data(ticker, period='1mo', interval='1d'):
     try:
         data = yf.download(ticker, period=period, interval=interval, progress=False)
-        return data['Close']
+        if data.empty or "Close" not in data:
+            raise ValueError(f"No price data found for {ticker}")
+        return data["Close"]
     except Exception as e:
         print(f"[ERROR] Failed to fetch {ticker}: {e}")
         return pd.Series()
@@ -22,7 +24,8 @@ def calculate_change(series):
 def generate_chart(ticker, name=None):
     series = fetch_data(ticker)
     if series.empty:
-        raise ValueError(f"No data for {ticker}")
+        print(f"[WARNING] No chart generated for {ticker} (empty data)")
+        return None
 
     daily, weekly, monthly = calculate_change(series)
     name = name or ticker
@@ -63,18 +66,16 @@ def generate_all_charts():
         "^IRX": "3M Yield",
         "^FVX": "5Y Yield",
         "^TYX": "30Y Yield"
-        # ^PUTCALL removed due to broken feed
     }
 
     chart_paths = []
     for ticker, name in assets.items():
         print(f"[DEBUG] Generating chart for: {ticker} ({name})")
-        try:
-            path = generate_chart(ticker, name)
-            if path:
-                chart_paths.append(path)
-        except Exception as e:
-            print(f"[ERROR] Chart for {ticker} failed: {e}")
+        path = generate_chart(ticker, name)
+        if path:
+            chart_paths.append(path)
+        else:
+            print(f"[SKIPPED] No chart for {ticker}")
     return chart_paths
 
 def generate_weekly_charts():
