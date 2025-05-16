@@ -1,4 +1,4 @@
-vimport os
+import os
 
 USE_GPT = os.getenv("USE_GPT", "false").lower() == "true"
 
