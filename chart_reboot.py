@@ -44,8 +44,13 @@ def generate_chart(ticker, name=None):
         plt.xlabel("Date")
         plt.ylabel("Price")
 
-        if daily is not None:
-            label = f"Day: {daily:.2f}%\nWeek: {weekly:.2f}%\nMonth: {monthly:.2f}%"
+        label = None
+        try:
+            label = f"Day: {float(daily):.2f}%\nWeek: {float(weekly) if weekly is not None else 'n/a'}%\nMonth: {float(monthly):.2f}%"
+        except Exception as e:
+            logger.warning(f"[WARNING] Skipping annotation for {ticker} due to: {repr(e)}")
+
+        if label:
             plt.annotate(label, xy=(0.99, 0.01), xycoords='axes fraction',
                          ha='right', va='bottom', fontsize=10,
                          bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgrey", alpha=0.5))
