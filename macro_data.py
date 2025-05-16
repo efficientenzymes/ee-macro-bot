@@ -1,53 +1,55 @@
-import discord
-import os
+import yfinance as yf
+import datetime
 import pytz
-import openai
-from datetime import datetime
-from chart_engine import generate_all_charts, generate_weekly_charts
-from macro_data import get_macro_events_for_today, get_earnings_for_today, get_sentiment_summary, get_past_week_events
 
-# Setup
-TOKEN = os.getenv("DISCORD_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-CHANNEL_NAME = "macro-dashboard"
-
-openai.api_key = OPENAI_API_KEY
-
-intents = discord.Intents.default()
-intents.messages = True
-intents.guilds = True
-intents.message_content = True
-
-client = discord.Client(intents=intents)
-
-# === Positioning GPT logic ===
-def generate_positioning_blurb(events, sentiment, is_weekly=False):
-    prompt = f"""You're a seasoned macro trader writing a 1–2 sentence market prep summary. 
-Today’s macro events: {', '.join(events[:5])}
-Sentiment: VIX={sentiment['vix']} ({sentiment['vix_level']}), MOVE={sentiment['move']} ({sentiment['move_level']}), Put/Call={sentiment['put_call']} ({sentiment['put_call_level']})
-Context: {'Weekly wrap' if is_weekly else 'Premarket plan'}
-
-Tone: blunt, practical, non-bot, avoid generic advice.
-Examples:
-- “CPI sets the tone — any upside surprise could fuel a quick fade.”
-- “Bonds tame, but risk assets look tired. Watch for rotation.”
-
-Now generate one in that tone:"""
-
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.5,
-            max_tokens=50,
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        print(f"GPT error: {e}")
-        return None
-
-# === Daily macro post ===
-def generate_daily_macro_message():
+# === Mock economic calendar (replace with real API later if needed) ===
+def get_macro_events_for_today():
+    # Hardcoded CPI example
     eastern = pytz.timezone("US/Eastern")
-    now = datetime.now(eastern)
-    today = now.strftime("%A, %B %d")
+    now = datetime.datetime.now(eastern)
+    if now.strftime("%Y-%m-%d") == "2025-05-15":
+        return [
+            "8:30 AM – CPI (m/m): Forecast 0.3%",
+            "8:30 AM – Core CPI (y/y): Forecast 3.6%",
+            "10:30 AM – EIA Crude Oil Inventories"
+        ]
+    return []
+
+def get_past_week_events():
+    # Mock example of past macro catalysts — replace with real events later
+    return [
+        "Monday – Empire State Manufacturing",
+        "Tuesday – PPI & Retail Sales",
+        "Wednesday – CPI",
+        "Thursday – Jobless Claims",
+        "Friday – UoM Sentiment"
+    ]
+
+# === Mock earnings (can be linked to Earnings Whisper or Yahoo API later) ===
+def get_earnings_for_today():
+    # Example for 2025-05-15
+    return [
+        "Before Open: TGT, JD",
+        "After Close: CSCO, SONY"
+    ]
+
+# === Sentiment Summary ===
+def get_sentiment_summary():
+    try:
+        vix = yf.Ticker("^VIX").history(period="2d")["Close"].iloc[-1]
+        move = yf.Ticker("^MOVE").history(period="2d")["Close"].iloc[-1]
+        put_call = yf.Ticker("^PUTCALL").history(period="2d")["Close"].iloc[-1]
+    except Exception as e:
+        print(f"Sentiment fetch error: {e}")
+        vix, move, put_call = 15.0, 100.0, 0.75  # fallback values
+
+    sentiment = {
+        "vix": f"{vix:.2f}",
+        "move": f"{move:.0f}",
+        "put_call": f"{put_call:.2f}",
+        "vix_level": "Low" if vix < 15 else "Elevated" if vix > 20 else "Neutral",
+        "move_level": "Calm" if move < 95 else "Neutral" if move < 115 else "Elevated",
+        "put_call_level": "Risk-on" if put_call < 0.75 else "Neutral" if put_call < 1.0 else "Risk-off"
+    }
+
+    return sentiment
