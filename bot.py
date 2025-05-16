@@ -11,11 +11,14 @@ from macro_data import (
     get_sentiment_summary
 )
 from positioning_summary import generate_positioning_blurb
+from macro_events_nextweek import get_macro_events_for_next_week
+from weekly_gpt_summary import generate_weekly_summary_gpt
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("macro-bot")
 
 TOKEN = os.getenv("DISCORD_TOKEN")
+CHANNEL_NAME = "macro-dashboard"
 
 intents = discord.Intents.default()
 intents.messages = True
@@ -77,7 +80,6 @@ def generate_daily_macro_message():
         except Exception as e:
             logger.warning(f"[WARNING] GPT macro blurb failed: {e}")
 
-        # Earnings Section
         lines.append("\n💰 Earnings Highlights:")
         if earnings:
             lines.extend(f"• {e}" for e in earnings)
@@ -104,7 +106,6 @@ def generate_daily_macro_message():
         except Exception as e:
             logger.warning(f"[WARNING] GPT earnings blurb failed: {e}")
 
-        # Sentiment
         lines.append("\n📊 Sentiment Snapshot:")
         lines.append(f"• VIX: {sentiment['vix']} ({sentiment['vix_level']})")
         lines.append(f"• MOVE Index: {sentiment['move']} ({sentiment['move_level']})")
@@ -154,9 +155,76 @@ async def generate_chart_summary_gpt():
         logger.warning(f"[WARNING] Chart GPT summary failed: {e}")
         return None
 
+async def schedule_checker():
+    await client.wait_until_ready()
+    channel = discord.utils.get(client.get_all_channels(), name=CHANNEL_NAME)
+
+    if not channel:
+        logger.error("❌ Channel 'macro-dashboard' not found.")
+        return
+
+    posted_today = {"daily": None, "weekly": None}
+
+    while not client.is_closed():
+        now = datetime.now(pytz.timezone("US/Eastern"))
+        current_time = now.strftime("%H:%M")
+        current_day = now.strftime("%A")
+
+        # Daily macro post at 7:00 AM EST
+        if current_day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]:
+            if current_time == "07:00" and posted_today["daily"] != now.date():
+                logger.info("📅 Running scheduled daily macro post")
+                try:
+                    chart_output, summary = generate_daily_macro_message()
+                    await channel.send(summary)
+
+                    if chart_output:
+                        await channel.send("📈 **Tracking asset class spreads to monitor risk flows**")
+                        for path, text in chart_output:
+                            if os.path.isfile(path):
+                                await channel.send(file=discord.File(path))
+                                await channel.send(text)
+                                await asyncio.sleep(1.5)
+
+                        chart_blurb = await generate_chart_summary_gpt()
+                        if chart_blurb:
+                            await channel.send(f"🧠 {chart_blurb}")
+                except Exception as e:
+                    logger.error(f"[ERROR] Scheduled daily macro post failed: {e}")
+
+                posted_today["daily"] = now.date()
+
+        # Weekly summary at 10:00 AM EST on Saturday
+        if current_day == "Saturday":
+            if current_time == "10:00" and posted_today["weekly"] != now.date():
+                logger.info("📆 Running scheduled Saturday summary")
+                try:
+                    next_week_events = get_macro_events_for_next_week()
+                    past_week_events = ["CPI print", "SPX breakout", "Put/Call ratio shifted"]  # manually listed or extend later
+
+                    lines = ["🧭 **Weekly Macro Recap**", "🔭 **Key Things to Watch Next Week:**"]
+                    if next_week_events:
+                        lines.extend(f"• {e}" for e in next_week_events)
+                    else:
+                        lines.append("• No major events scheduled.")
+
+                    recap = generate_weekly_summary_gpt(past_week_events, next_week_events)
+                    if recap:
+                        lines.append(f"\n🧠 {recap}")
+
+                    await channel.send("\n".join(lines))
+
+                except Exception as e:
+                    logger.error(f"[ERROR] Scheduled weekly summary failed: {e}")
+
+                posted_today["weekly"] = now.date()
+
+        await asyncio.sleep(30)
+
 @client.event
 async def on_ready():
     logger.info("✅ Logged in as %s", client.user)
+    client.loop.create_task(schedule_checker())
 
 @client.event
 async def on_message(message):
@@ -181,7 +249,6 @@ async def on_message(message):
                         await message.channel.send(text)
                         await asyncio.sleep(1.5)
 
-                # GPT chart interpretation
                 chart_blurb = await generate_chart_summary_gpt()
                 if chart_blurb:
                     await message.channel.send(f"🧠 {chart_blurb}")
