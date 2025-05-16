@@ -40,8 +40,12 @@ def generate_daily_macro_message():
         sentiment = get_sentiment_summary()
         logger.info(f"[DEBUG] Retrieved sentiment: {sentiment}")
 
-        chart_paths = generate_all_charts()
-        logger.info(f"[DEBUG] Generated {len(chart_paths)} chart(s)")
+        try:
+            chart_paths = generate_all_charts()
+            logger.info(f"[DEBUG] Generated {len(chart_paths)} chart(s)")
+        except Exception as e:
+            logger.error(f"[ERROR] generate_all_charts() failed: {e}")
+            chart_paths = []
 
         lines = []
         lines.append(f"📅 **What to Watch Today – {today}**")
@@ -64,13 +68,10 @@ def generate_daily_macro_message():
         blurb = None
         try:
             blurb = generate_positioning_blurb(macro_events, sentiment)
+            logger.info(f"[DEBUG] Received blurb: {blurb}")
         except Exception as e:
             logger.error(f"[ERROR] generate_positioning_blurb() raised exception: {e}")
-
-        logger.info(f"[DEBUG] Blurb returned: {blurb}")
-
-        if not blurb:
-            blurb = "Positioning failed — empty summary"
+            blurb = "Positioning failed — check logs"
 
         lines.append(f"\n🎯 {blurb}")
 
