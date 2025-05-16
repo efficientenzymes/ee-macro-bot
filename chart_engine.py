@@ -56,16 +56,11 @@ def generate_all_charts():
         "^RUT": "Russell 2000",
         "^VIX": "VIX",
         "TLT": "20Y Bonds",
-        "DXY": "Dollar Index",
         "GC=F": "Gold",
         "CL=F": "Crude Oil",
         "BTC-USD": "Bitcoin",
-        "^VVIX": "VVIX",
         "^MOVE": "MOVE Index",
-        "^TNX": "10Y Yield",
-        "^IRX": "3M Yield",
-        "^FVX": "5Y Yield",
-        "^TYX": "30Y Yield"
+        "^TNX": "10Y Yield"
     }
 
     chart_paths = []
@@ -76,34 +71,4 @@ def generate_all_charts():
             chart_paths.append(path)
         else:
             print(f"[SKIPPED] No chart for {ticker}")
-    return chart_paths
-
-def generate_weekly_charts():
-    tickers = {
-        "^GSPC": "S&P 500",
-        "^NDX": "Nasdaq 100",
-        "^RUT": "Russell 2000",
-        "DXY": "Dollar Index",
-        "TLT": "20Y Bonds"
-    }
-
-    chart_paths = []
-    for ticker, name in tickers.items():
-        print(f"[DEBUG] Generating weekly chart for: {ticker} ({name})")
-        series = fetch_data(ticker, period='3mo', interval='1d')
-        if series.empty:
-            print(f"[WARNING] Skipping weekly chart: {ticker} has no data.")
-            continue
-
-        plt.figure(figsize=(10, 4))
-        plt.plot(series.index, series.values)
-        plt.title(f"{name} Weekly View ({ticker})")
-        plt.xlabel("Date")
-        plt.ylabel("Price")
-        filepath = f"charts/weekly_{ticker.replace('=', '').replace('^', '')}.png"
-        os.makedirs("charts", exist_ok=True)
-        plt.tight_layout()
-        plt.savefig(filepath)
-        plt.close()
-        chart_paths.append(filepath)
     return chart_paths
