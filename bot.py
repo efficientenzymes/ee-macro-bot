@@ -130,9 +130,15 @@ async def on_message(message):
             await message.channel.send("⏳ Generating daily macro...")
             chart_paths, summary_block = generate_daily_macro_message()
             await message.channel.send(summary_block)
+
             for path in chart_paths:
-                with open(path, 'rb') as f:
-                    await message.channel.send(file=discord.File(f))
+                try:
+                    if not os.path.isfile(path):
+                        raise FileNotFoundError(f"{path} not found")
+                    with open(path, 'rb') as f:
+                        await message.channel.send(file=discord.File(f))
+                except Exception as e:
+                    print(f"[WARNING] Failed to send chart {path}: {e}")
             print("✅ Daily macro posted successfully.")
         except Exception as e:
             await message.channel.send(f"❌ Error in !post: {e}")
@@ -143,9 +149,15 @@ async def on_message(message):
             await message.channel.send("⏳ Generating weekly macro...")
             chart_paths, summary_block = generate_weekly_macro_message()
             await message.channel.send(summary_block)
+
             for path in chart_paths:
-                with open(path, 'rb') as f:
-                    await message.channel.send(file=discord.File(f))
+                try:
+                    if not os.path.isfile(path):
+                        raise FileNotFoundError(f"{path} not found")
+                    with open(path, 'rb') as f:
+                        await message.channel.send(file=discord.File(f))
+                except Exception as e:
+                    print(f"[WARNING] Failed to send chart {path}: {e}")
             print("✅ Weekly macro posted successfully.")
         except Exception as e:
             await message.channel.send(f"❌ Error in !weekly: {e}")
@@ -160,10 +172,16 @@ async def on_message(message):
             chart_paths, summary_block = generate_daily_macro_message()
             await message.channel.send(summary_block)
             for path in chart_paths:
-                with open(path, 'rb') as f:
-                    await message.channel.send(file=discord.File(f))
+                try:
+                    if not os.path.isfile(path):
+                        raise FileNotFoundError(f"{path} not found")
+                    with open(path, 'rb') as f:
+                        await message.channel.send(file=discord.File(f))
+                except Exception as e:
+                    print(f"[WARNING] Failed to send chart {path}: {e}")
         except Exception as e:
             await message.channel.send(f"❌ Error in !test: {e}")
             print(f"[ERROR] Failed !test: {e}")
 
 client.run(TOKEN)
+
