@@ -1,12 +1,6 @@
-import datetime
-import pytz
 import yfinance as yf
+from earnings_live import get_earnings_for_today
 from macro_events_live import get_macro_events_for_today
-
-def get_macro_events_for_today():
-    eastern = pytz.timezone("US/Eastern")
-    now = datetime.datetime.now(eastern)
-    date_str = now.strftime("%Y-%m-%d")
 
 def get_sentiment_summary():
     try:
@@ -27,3 +21,4 @@ def get_sentiment_summary():
     }
 
     return sentiment
+
