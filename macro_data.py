@@ -1,42 +1,21 @@
-import yfinance as yf
 import datetime
 import pytz
+import yfinance as yf
+from macro_events_live import get_macro_events_for_today
 
 def get_macro_events_for_today():
-    return [
-        "8:30 AM – Initial Jobless Claims",
-        "10:00 AM – Existing Home Sales"
-    ]
-
-def get_past_week_events():
-    return [
-        "Monday – Empire State Manufacturing",
-        "Tuesday – Retail Sales",
-        "Wednesday – CPI",
-        "Thursday – Jobless Claims",
-        "Friday – Leading Indicators"
-    ]
-
-def get_earnings_for_today():
-    return [
-        "Before Open: WMT, HD",
-        "After Close: NVDA, AMAT"
-    ]
+    eastern = pytz.timezone("US/Eastern")
+    now = datetime.datetime.now(eastern)
+    date_str = now.strftime("%Y-%m-%d")
 
 def get_sentiment_summary():
     try:
         vix = yf.Ticker("^VIX").history(period="2d")["Close"].iloc[-1]
-    except Exception as e:
-        print(f"VIX fetch error: {e}")
-        vix = 15.0
-
-    try:
         move = yf.Ticker("^MOVE").history(period="2d")["Close"].iloc[-1]
+        put_call = yf.Ticker("^PUTCALL").history(period="2d")["Close"].iloc[-1]
     except Exception as e:
-        print(f"MOVE fetch error: {e}")
-        move = 100.0
-
-    put_call = 0.74  # Static fallback
+        print(f"Sentiment fetch error: {e}")
+        vix, move, put_call = 15.0, 100.0, 0.75
 
     sentiment = {
         "vix": f"{vix:.2f}",
