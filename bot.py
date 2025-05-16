@@ -19,6 +19,8 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 
 def generate_daily_macro_message():
+    print("[DEBUG] generate_daily_macro_message running")
+    
     eastern = pytz.timezone("US/Eastern")
     now = datetime.now(eastern)
     today = now.strftime("%A, %B %d")
@@ -44,10 +46,9 @@ def generate_daily_macro_message():
     lines.append(f"• MOVE Index: {sentiment['move']} ({sentiment['move_level']})")
     lines.append(f"• Put/Call Ratio: {sentiment['put_call']} ({sentiment['put_call_level']})")
 
-    # GPT or fallback blurb
+    # ✅ Ensure GPT is called
     blurb = generate_positioning_blurb(macro_events, sentiment)
-    if blurb:
-        lines.append(f"\n🎯 {blurb}")
+    lines.append(f"\n🎯 {blurb}")
 
     return chart_paths, "\n".join(lines)
 
@@ -73,7 +74,7 @@ async def on_message(message):
                         await message.channel.send(file=discord.File(f))
             print("✅ Posted macro update.")
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"❌ Error in !post: {e}")
             await message.channel.send(f"❌ Error: {e}")
 
     elif content == "!status":
