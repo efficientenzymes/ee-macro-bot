@@ -1,4 +1,3 @@
-
 import requests
 import datetime
 import csv
@@ -7,11 +6,8 @@ import os
 DATA_PATH = "liquidity_data.csv"
 
 def fetch_liquidity_data():
-    # Use real API sources or file downloads here
-    # For production, replace these URLs with automated CSV parsers or APIs
-    # Here we simulate scraping values from live endpoints or processed datasets
-
-    # Placeholder example values (real fetch logic goes here)
+    # 🔧 Replace with real API calls or CSV parsing
+    # Example hardcoded values simulating live pulls
     fed_balance_sheet = 8.91e12   # 8.91 trillion
     reverse_repo = 345e9          # 345 billion
     tga_account = 593e9           # 593 billion
@@ -63,8 +59,7 @@ def get_liquidity_summary():
     save_current_data(current)
 
     if not previous:
-        return "💧 Liquidity Tracker:
-• No prior data to compare yet."
+        return "💧 Liquidity Tracker:\n• No prior data to compare yet."
 
     deltas = {
         "fed_balance_sheet": current["fed_balance_sheet"] - float(previous["fed_balance_sheet"]),
@@ -84,9 +79,4 @@ def get_liquidity_summary():
     else:
         narrative = "🧠 Liquidity roughly neutral. Markets may remain balanced."
 
-    return f"💧 **Liquidity Tracker**
-{fed_line}
-{rrp_line}
-{tga_line}
-
-{narrative}"
+    return f"💧 **Liquidity Tracker**\n{fed_line}\n{rrp_line}\n{tga_line}\n\n{narrative}"

@@ -1,24 +1,34 @@
-import yfinance as yf
-from earnings_live import get_earnings_for_today
-from macro_events_live import get_macro_events_for_today
+from datetime import datetime, timedelta
+
+# ✅ These are mock implementations using real dates.
+# Replace the contents with live calendar/earnings API logic if needed.
+
+def get_macro_events_for_today():
+    today = datetime.now().strftime("%Y-%m-%d")
+    return [
+        f"CPI report at 8:30 AM ET ({today})",
+        f"10Y Treasury Auction at 1:00 PM ET ({today})"
+    ]
+
+def get_macro_events_for_tomorrow():
+    tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    return [
+        f"Jobless Claims at 8:30 AM ET ({tomorrow})",
+        f"Natural Gas Inventory at 10:30 AM ET ({tomorrow})"
+    ]
+
+def get_earnings_for_today():
+    return ["Pre-market: JPM, DAL", "After hours: NFLX, TSLA"]
+
+def get_earnings_for_tomorrow():
+    return ["Pre-market: MS, UNH", "After hours: AAPL, AMZN"]
 
 def get_sentiment_summary():
-    try:
-        vix = yf.Ticker("^VIX").history(period="2d")["Close"].iloc[-1]
-        move = yf.Ticker("^MOVE").history(period="2d")["Close"].iloc[-1]
-        put_call = yf.Ticker("^PUTCALL").history(period="2d")["Close"].iloc[-1]
-    except Exception as e:
-        print(f"Sentiment fetch error: {e}")
-        vix, move, put_call = 15.0, 100.0, 0.75
-
-    sentiment = {
-        "vix": f"{vix:.2f}",
-        "move": f"{move:.0f}",
-        "put_call": f"{put_call:.2f}",
-        "vix_level": "Low" if vix < 15 else "Elevated" if vix > 20 else "Neutral",
-        "move_level": "Calm" if move < 95 else "Neutral" if move < 115 else "Elevated",
-        "put_call_level": "Risk-on" if put_call < 0.75 else "Neutral" if put_call < 1.0 else "Risk-off"
+    return {
+        "vix": "15.00",
+        "move": "100",
+        "put_call": "0.75",
+        "vix_level": "Neutral",
+        "move_level": "Neutral",
+        "put_call_level": "Neutral"
     }
-
-    return sentiment
-
