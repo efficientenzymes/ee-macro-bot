@@ -1,29 +1,50 @@
+import requests
 from datetime import datetime, timedelta
+import os
 
-# ✅ These are mock implementations using real dates.
-# Replace the contents with live calendar/earnings API logic if needed.
+TRADINGECONOMICS_API_KEY = os.getenv("TRADINGECON_API_KEY")
+
+def fetch_economic_events(date: str):
+    try:
+        url = f"https://api.tradingeconomics.com/calendar?c={TRADINGECONOMICS_API_KEY}&d={date}"
+        response = requests.get(url)
+        data = response.json()
+
+        events = []
+        for item in data:
+            if "event" in item and item.get("date")[:10] == date:
+                time = item.get("date", "")[11:16]
+                events.append(f"{item['event']} at {time} ({date})")
+
+        return events if events else [f"No scheduled events found for {date}."]
+    except Exception as e:
+        return [f"Error fetching events: {str(e)}"]
+
+def fetch_earnings(date: str):
+    try:
+        # 🔧 Replace with real earnings API (e.g. Nasdaq, Yahoo Finance, or TradingView scraping)
+        return [f"(Stub) Live earnings data for {date} coming soon."]
+    except Exception as e:
+        return [f"Error fetching earnings: {str(e)}"]
 
 def get_macro_events_for_today():
     today = datetime.now().strftime("%Y-%m-%d")
-    return [
-        f"CPI report at 8:30 AM ET ({today})",
-        f"10Y Treasury Auction at 1:00 PM ET ({today})"
-    ]
+    return fetch_economic_events(today)
 
 def get_macro_events_for_tomorrow():
     tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
-    return [
-        f"Jobless Claims at 8:30 AM ET ({tomorrow})",
-        f"Natural Gas Inventory at 10:30 AM ET ({tomorrow})"
-    ]
+    return fetch_economic_events(tomorrow)
 
 def get_earnings_for_today():
-    return ["Pre-market: JPM, DAL", "After hours: NFLX, TSLA"]
+    today = datetime.now().strftime("%Y-%m-%d")
+    return fetch_earnings(today)
 
 def get_earnings_for_tomorrow():
-    return ["Pre-market: MS, UNH", "After hours: AAPL, AMZN"]
+    tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    return fetch_earnings(tomorrow)
 
 def get_sentiment_summary():
+    # 🔧 You should eventually replace this with values fetched from your live indicator system.
     return {
         "vix": "15.00",
         "move": "100",
