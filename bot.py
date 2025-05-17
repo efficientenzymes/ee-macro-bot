@@ -3,6 +3,7 @@ import os
 import pytz
 import logging
 import asyncio
+from weekly_data_collector import get_past_week_summary
 from datetime import datetime
 from chart_reboot_curated import generate_all_charts
 from macro_data import (
@@ -200,7 +201,7 @@ async def schedule_checker():
                 logger.info("📆 Running scheduled Saturday summary")
                 try:
                     next_week_events = get_macro_events_for_next_week()
-                    past_week_events = ["CPI print", "SPX breakout", "Put/Call ratio shifted"]  # manually listed or extend later
+                    past_week_events = get_past_week_summary()
 
                     lines = ["🧭 **Weekly Macro Recap**", "🔭 **Key Things to Watch Next Week:**"]
                     if next_week_events:
