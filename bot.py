@@ -5,6 +5,7 @@ import logging
 import asyncio
 from weekly_data_collector import get_past_week_summary
 from datetime import datetime
+from weekly_macro_recap import get_weekly_macro_highlights
 from chart_reboot_curated import generate_all_charts
 from macro_data import (
     get_macro_events_for_today,
@@ -195,13 +196,20 @@ async def schedule_checker():
 
                 posted_today["daily"] = now.date()
 
-        # Weekly summary at 10:00 AM EST on Saturday
+        #        # Weekly summary at 10:00 AM EST on Saturday
         if current_day == "Saturday":
             if current_time == "10:00" and posted_today["weekly"] != now.date():
                 logger.info("📆 Running scheduled Saturday summary")
                 try:
+                    from macro_events_nextweek import get_macro_events_for_next_week
+                    from weekly_macro_recap import get_weekly_macro_highlights
+                    from weekly_data_collector import get_past_week_summary
+                    from weekly_gpt_summary import generate_weekly_summary_gpt
+
                     next_week_events = get_macro_events_for_next_week()
-                    past_week_events = get_past_week_summary()
+                    macro_highlights = get_weekly_macro_highlights()
+                    sentiment_and_earnings = get_past_week_summary()
+                    past_week_events = macro_highlights + sentiment_and_earnings
 
                     lines = ["🧭 **Weekly Macro Recap**", "🔭 **Key Things to Watch Next Week:**"]
                     if next_week_events:
@@ -219,6 +227,7 @@ async def schedule_checker():
                     logger.error(f"[ERROR] Scheduled weekly summary failed: {e}")
 
                 posted_today["weekly"] = now.date()
+
 
         await asyncio.sleep(30)
 
