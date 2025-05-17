@@ -1,4 +1,5 @@
 import discord
+from sentiment_score import calculate_sentiment_score
 import os
 import pytz
 import logging
@@ -112,6 +113,21 @@ def generate_daily_macro_message():
         lines.append(f"• VIX: {sentiment['vix']} ({sentiment['vix_level']})")
         lines.append(f"• MOVE Index: {sentiment['move']} ({sentiment['move_level']})")
         lines.append(f"• Put/Call Ratio: {sentiment['put_call']} ({sentiment['put_call_level']})")
+        # Append new one-liner sentiment score
+try:
+    mock_metrics = {
+        "btc_vix_ratio": 0.64,  # TODO: Replace with real data later
+        "vix_level": float(sentiment['vix']),
+        "put_call_ratio": float(sentiment['put_call']),
+        "hyg_lqd_trend": "up",  # TODO: Automate based on chart
+        "spx_dxy_ratio": 1.6,   # TODO: Pull from chart spread values
+    }
+    sentiment_line = calculate_sentiment_score(mock_metrics)
+    lines.append(f"\n🧠 Sentiment Summary:\n{sentiment_line}")
+except Exception as e:
+    logger.warning(f"[WARNING] sentiment_score failed: {e}")
+    lines.append("\n🧠 Sentiment Summary failed to generate.")
+
 
         logger.info("[DEBUG] About to call generate_positioning_blurb()")
 
