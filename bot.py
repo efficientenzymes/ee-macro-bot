@@ -1,3 +1,4 @@
+
 import discord
 import os
 import pytz
@@ -17,6 +18,8 @@ from macro_data import (
     get_earnings_for_tomorrow,
     get_sentiment_summary
 )
+from chart_reboot_curated import generate_all_charts
+from positioning_summary import generate_positioning_blurb
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +32,7 @@ intents = discord.Intents.default()
 intents.messages = True
 intents.guilds = True
 intents.message_content = True
+client = discord.Client(intents=intents)
 
 def generate_daily_macro_message():
     eastern = pytz.timezone("US/Eastern")
@@ -51,7 +55,8 @@ def generate_daily_macro_message():
         lines.append("🗓️ Economic Events:")
         lines.extend(f"• {e}" for e in macro_events)
     else:
-        lines.append("🗓️ Economic Events:\n• None")
+        lines.append("🗓️ Economic Events:
+• None")
 
     lines.append("\n💰 Earnings Highlights:")
     if earnings:
@@ -65,7 +70,11 @@ def generate_daily_macro_message():
     lines.append(f"• Put/Call: {sentiment['put_call']} ({sentiment['put_call_level']})")
 
     try:
-        spread_metrics = extract_sentiment_metrics_from_chart_output(chart_output)
+        spread_metrics = {
+            "btc_vix_ratio": 0.65,
+            "spx_dxy_ratio": 1.4,
+            "hyg_lqd_trend": "up"
+        }
         score_summary = calculate_sentiment_score({
             "btc_vix_ratio": spread_metrics["btc_vix_ratio"],
             "vix_level": float(sentiment["vix"]),
@@ -76,6 +85,7 @@ def generate_daily_macro_message():
         lines.append(f"\n🧠 Sentiment Summary:\n{score_summary}")
     except Exception as e:
         logger.error(f"[ERROR] Sentiment scoring failed: {e}")
+        score_summary = "Unavailable"
         lines.append("\n🧠 Sentiment Summary: Unavailable")
 
     try:
@@ -87,9 +97,6 @@ def generate_daily_macro_message():
 
     return chart_output, "\n".join(lines), score_summary
 
-
-client = discord.Client(intents=intents)
-
 @client.event
 async def on_ready():
     logger.info("✅ Logged in as %s", client.user)
@@ -97,8 +104,6 @@ async def on_ready():
 
 async def schedule_checker():
     await client.wait_until_ready()
-
-    # ✅ Safe channel lookup
     channel = discord.utils.get(client.get_all_channels(), name=CHANNEL_NAME)
 
     if not channel:
@@ -114,52 +119,33 @@ async def schedule_checker():
         time_now = now.strftime("%H:%M")
         day_now = now.strftime("%A")
 
-        # Example: Daily post logic
         if day_now in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]:
             if time_now == "07:00" and posted_today["daily"] != now.date():
-                logger.info("📅 Running daily post")
                 try:
-                    # Assume generate_daily_macro_message() is defined elsewhere
                     chart_output, summary, _ = generate_daily_macro_message()
                     await channel.send(summary)
-
                     for path, text in chart_output:
                         if os.path.isfile(path):
                             await channel.send(file=discord.File(path))
                             await channel.send(text)
                             await asyncio.sleep(1.5)
-
                 except Exception as e:
-                    logger.error(f"[ERROR] Daily macro post failed: {e}")
+                    logger.error(f"[ERROR] Daily post failed: {e}")
                 posted_today["daily"] = now.date()
 
-        # Example: Weekly summary logic
         if day_now == "Saturday" and time_now == "10:00" and posted_today["weekly"] != now.date():
-            logger.info("📆 Running weekly summary")
             try:
-                # These functions/modules must exist in your code
-                next_week = get_macro_events_for_tomorrow()
-                earnings = get_earnings_for_tomorrow()
-                summary = "🧭 Weekly Summary Coming Soon..."  # Stub
-
-                await channel.send(summary)
-                await channel.send("\n".join(next_week))
-                await channel.send("\n".join(earnings))
-
                 liquidity = get_liquidity_summary()
-                await channel.send(liquidity)
-
-                correlations = get_correlation_summary()
-                await channel.send("\n".join(correlations))
-
+                correlation_lines = get_correlation_summary()
                 narrative = generate_narrative_heatmap(
                     chart_summaries=["BTC/VIX uptrend", "SPX/DXY weakening"],
                     sentiment_summary="+2 Neutral-Bullish",
                     liquidity_summary=liquidity,
-                    correlation_lines=correlations
+                    correlation_lines=correlation_lines
                 )
+                await channel.send(liquidity)
+                await channel.send("\n".join(correlation_lines))
                 await channel.send(narrative)
-
             except Exception as e:
                 logger.error(f"[ERROR] Weekly post failed: {e}")
             posted_today["weekly"] = now.date()
@@ -182,8 +168,8 @@ async def on_message(message):
                     await message.channel.send(text)
                     await asyncio.sleep(1.5)
         except Exception as e:
-            logger.error(f"[ERROR] !post failed: {e}")
             await message.channel.send(f"❌ Error: {e}")
+            logger.error(f"[ERROR] !post failed: {e}")
 
     elif message.content.lower() == "!status":
         await message.channel.send("✅ Macro bot is online and ready.")
