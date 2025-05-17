@@ -1,4 +1,3 @@
-
 import openai
 import os
 
@@ -17,10 +16,10 @@ Below is this week's context:
 {liquidity_summary}
 
 🔗 Correlation Changes:
-{"\n".join(correlation_lines)}
+{"\\n".join(correlation_lines)}
 
 📊 Spread Commentary:
-{"\n".join(chart_summaries)}
+{"\\n".join(chart_summaries)}
 
 Based on this, identify the dominant macro narratives for the week.
 Split into two categories:
@@ -28,7 +27,7 @@ Split into two categories:
 • Losing Momentum
 
 Keep it concise and institutional in tone.
-    '''.strip()
+'''.strip()
 
     try:
         response = openai.ChatCompletion.create(
@@ -37,7 +36,6 @@ Keep it concise and institutional in tone.
             temperature=0.5,
             max_tokens=300,
         )
-        return "🗺️ **Narrative Heatmap**
-" + response["choices"][0]["message"]["content"].strip()
+        return "🗺️ **Narrative Heatmap**\n" + response["choices"][0]["message"]["content"].strip()
     except Exception as e:
         return f"⚠️ Failed to generate narrative heatmap: {e}"
