@@ -55,8 +55,8 @@ def generate_daily_macro_message():
         lines.append("🗓️ Economic Events:")
         lines.extend(f"• {e}" for e in macro_events)
     else:
-        lines.append("🗓️ Economic Events:
-• None")
+        lines.append("🗓️ Economic Events:\n• None")
+
 
     lines.append("\n💰 Earnings Highlights:")
     if earnings:
