@@ -33,6 +33,41 @@ intents.guilds = True
 intents.message_content = True
 client = discord.Client(intents=intents)
 
+def extract_percent_change(text, key):
+    try:
+        start = text.find(f"{key}:") + len(key) + 1
+        end = text.find("%", start)
+        value = text[start:end].strip()
+        return float(value)
+    except:
+        return None
+
+def extract_sentiment_metrics_from_chart_output(chart_output):
+    btc_vix_ratio = None
+    spx_dxy_ratio = None
+    hyg_lqd_trend = "flat"
+
+    for path, desc in chart_output:
+        if "BTC / VIX" in desc:
+            btc_vix_ratio = extract_percent_change(desc, "1D")
+        elif "SPX / DXY" in desc:
+            spx_dxy_ratio = extract_percent_change(desc, "1D")
+        elif "HYG / LQD" in desc:
+            change = extract_percent_change(desc, "1W")
+            if change is not None:
+                if change > 0.5:
+                    hyg_lqd_trend = "up"
+                elif change < -0.5:
+                    hyg_lqd_trend = "down"
+                else:
+                    hyg_lqd_trend = "flat"
+
+    return {
+        "btc_vix_ratio": btc_vix_ratio if btc_vix_ratio is not None else 0.0,
+        "spx_dxy_ratio": spx_dxy_ratio if spx_dxy_ratio is not None else 0.0,
+        "hyg_lqd_trend": hyg_lqd_trend,
+    }
+
 def generate_daily_macro_message():
     logger.info("[DEBUG] generate_daily_macro_message running")
 
@@ -112,12 +147,13 @@ def generate_daily_macro_message():
         lines.append(f"• Put/Call Ratio: {sentiment['put_call']} ({sentiment['put_call_level']})")
 
         try:
+            metrics_from_charts = extract_sentiment_metrics_from_chart_output(chart_output)
             metrics = {
-                "btc_vix_ratio": 0.64,  # TODO: Replace with real value
+                "btc_vix_ratio": metrics_from_charts["btc_vix_ratio"],
                 "vix_level": float(sentiment['vix']),
                 "put_call_ratio": float(sentiment['put_call']),
-                "hyg_lqd_trend": "up",  # TODO: Replace with real trend
-                "spx_dxy_ratio": 1.6,   # TODO: Replace with real value
+                "hyg_lqd_trend": metrics_from_charts["hyg_lqd_trend"],
+                "spx_dxy_ratio": metrics_from_charts["spx_dxy_ratio"],
             }
             score_summary = calculate_sentiment_score(metrics)
             lines.append(f"\n🧠 Sentiment Summary:\n{score_summary}")
@@ -164,6 +200,11 @@ async def generate_chart_summary_gpt():
     except Exception as e:
         logger.warning(f"[WARNING] Chart GPT summary failed: {e}")
         return None
+
+@client.event
+async def on_ready():
+    logger.info("✅ Logged in as %s", client.user)
+    client.loop.create_task(schedule_checker())
 
 async def schedule_checker():
     await client.wait_until_ready()
@@ -228,11 +269,6 @@ async def schedule_checker():
                 posted_today["weekly"] = now.date()
 
         await asyncio.sleep(30)
-
-@client.event
-async def on_ready():
-    logger.info("✅ Logged in as %s", client.user)
-    client.loop.create_task(schedule_checker())
 
 @client.event
 async def on_message(message):
