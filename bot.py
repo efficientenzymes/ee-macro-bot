@@ -1,11 +1,13 @@
+
 import discord
-from sentiment_score import calculate_sentiment_score
 import os
 import pytz
 import logging
 import asyncio
-from weekly_data_collector import get_past_week_summary
 from datetime import datetime
+from dotenv import load_dotenv
+
+from weekly_data_collector import get_past_week_summary
 from weekly_macro_recap import get_weekly_macro_highlights
 from chart_reboot_curated import generate_all_charts
 from macro_data import (
@@ -16,7 +18,9 @@ from macro_data import (
 from positioning_summary import generate_positioning_blurb
 from macro_events_nextweek import get_macro_events_for_next_week
 from weekly_gpt_summary import generate_weekly_summary_gpt
+from sentiment_score import calculate_sentiment_score
 
+load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("macro-bot")
 
@@ -38,13 +42,8 @@ def generate_daily_macro_message():
         today = now.strftime("%A, %B %d")
 
         macro_events = get_macro_events_for_today()
-        logger.info(f"[DEBUG] Retrieved macro events: {macro_events}")
-
         earnings = get_earnings_for_today()
-        logger.info(f"[DEBUG] Retrieved earnings: {earnings}")
-
         sentiment = get_sentiment_summary()
-        logger.info(f"[DEBUG] Retrieved sentiment: {sentiment}")
 
         try:
             chart_output = generate_all_charts()
@@ -62,7 +61,6 @@ def generate_daily_macro_message():
         else:
             lines.append("🗓️ Economic Events:\n• No major events found.")
 
-        # GPT macro blurb
         try:
             if macro_events:
                 import openai
@@ -89,7 +87,6 @@ def generate_daily_macro_message():
         else:
             lines.append("• No significant earnings today")
 
-        # GPT earnings blurb
         try:
             if earnings:
                 tickers = [e.split(":")[-1].strip() for e in earnings]
@@ -113,37 +110,32 @@ def generate_daily_macro_message():
         lines.append(f"• VIX: {sentiment['vix']} ({sentiment['vix_level']})")
         lines.append(f"• MOVE Index: {sentiment['move']} ({sentiment['move_level']})")
         lines.append(f"• Put/Call Ratio: {sentiment['put_call']} ({sentiment['put_call_level']})")
-        # Append new one-liner sentiment score
-try:
-    mock_metrics = {
-        "btc_vix_ratio": 0.64,  # TODO: Replace with real data later
-        "vix_level": float(sentiment['vix']),
-        "put_call_ratio": float(sentiment['put_call']),
-        "hyg_lqd_trend": "up",  # TODO: Automate based on chart
-        "spx_dxy_ratio": 1.6,   # TODO: Pull from chart spread values
-    }
-    sentiment_line = calculate_sentiment_score(mock_metrics)
-    lines.append(f"\n🧠 Sentiment Summary:\n{sentiment_line}")
-except Exception as e:
-    logger.warning(f"[WARNING] sentiment_score failed: {e}")
-    lines.append("\n🧠 Sentiment Summary failed to generate.")
 
+        try:
+            metrics = {
+                "btc_vix_ratio": 0.64,  # TODO: Replace with real value
+                "vix_level": float(sentiment['vix']),
+                "put_call_ratio": float(sentiment['put_call']),
+                "hyg_lqd_trend": "up",  # TODO: Replace with real trend
+                "spx_dxy_ratio": 1.6,   # TODO: Replace with real value
+            }
+            score_summary = calculate_sentiment_score(metrics)
+            lines.append(f"\n🧠 Sentiment Summary:\n{score_summary}")
+        except Exception as e:
+            logger.warning(f"[WARNING] Sentiment score generation failed: {e}")
+            lines.append("\n🧠 Sentiment Summary could not be generated.")
 
-        logger.info("[DEBUG] About to call generate_positioning_blurb()")
-
-        blurb = None
         try:
             blurb = generate_positioning_blurb(macro_events, sentiment)
-            logger.info(f"[DEBUG] Received blurb: {blurb}")
+            lines.append(f"\n🎯 {blurb}")
         except Exception as e:
-            logger.error(f"[ERROR] generate_positioning_blurb() raised exception: {e}")
-            blurb = "Positioning failed — check logs"
+            logger.error(f"[ERROR] generate_positioning_blurb failed: {e}")
+            lines.append("\n🎯 Positioning summary failed.")
 
-        lines.append(f"\n🎯 {blurb}")
         return chart_output, "\n".join(lines)
 
     except Exception as e:
-        logger.error(f"[ERROR] Exception in generate_daily_macro_message: {e}")
+        logger.error(f"[ERROR] generate_daily_macro_message: {e}")
         raise
 
 async def generate_chart_summary_gpt():
@@ -188,7 +180,6 @@ async def schedule_checker():
         current_time = now.strftime("%H:%M")
         current_day = now.strftime("%A")
 
-        # Daily macro post at 7:00 AM EST
         if current_day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]:
             if current_time == "07:00" and posted_today["daily"] != now.date():
                 logger.info("📅 Running scheduled daily macro post")
@@ -212,16 +203,9 @@ async def schedule_checker():
 
                 posted_today["daily"] = now.date()
 
-        #        # Weekly summary at 10:00 AM EST on Saturday
         if current_day == "Saturday":
             if current_time == "10:00" and posted_today["weekly"] != now.date():
-                logger.info("📆 Running scheduled Saturday summary")
                 try:
-                    from macro_events_nextweek import get_macro_events_for_next_week
-                    from weekly_macro_recap import get_weekly_macro_highlights
-                    from weekly_data_collector import get_past_week_summary
-                    from weekly_gpt_summary import generate_weekly_summary_gpt
-
                     next_week_events = get_macro_events_for_next_week()
                     macro_highlights = get_weekly_macro_highlights()
                     sentiment_and_earnings = get_past_week_summary()
@@ -238,12 +222,10 @@ async def schedule_checker():
                         lines.append(f"\n🧠 {recap}")
 
                     await channel.send("\n".join(lines))
-
                 except Exception as e:
                     logger.error(f"[ERROR] Scheduled weekly summary failed: {e}")
 
                 posted_today["weekly"] = now.date()
-
 
         await asyncio.sleep(30)
 
@@ -255,13 +237,10 @@ async def on_ready():
 @client.event
 async def on_message(message):
     logger.info("[DEBUG] Received message: %s", message.content)
-
     if message.author == client.user:
         return
 
-    content = message.content.lower()
-
-    if content == "!post":
+    if message.content.lower() == "!post":
         await message.channel.send("⏳ Generating macro update...")
         try:
             chart_output, summary = generate_daily_macro_message()
@@ -280,12 +259,11 @@ async def on_message(message):
                     await message.channel.send(f"🧠 {chart_blurb}")
 
             logger.info("✅ Posted macro update.")
-
         except Exception as e:
             logger.error("❌ Error in !post: %s", e)
             await message.channel.send(f"❌ Error: {e}")
 
-    elif content == "!status":
+    elif message.content.lower() == "!status":
         await message.channel.send("✅ Macro bot is online and running.")
 
 client.run(TOKEN)
