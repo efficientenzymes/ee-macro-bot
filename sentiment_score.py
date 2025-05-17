@@ -1,111 +1,99 @@
-
-import yfinance as yf
+import os
+from dotenv import load_dotenv
 import requests
-import datetime
-import logging
 
-logger = logging.getLogger("macro-bot")
+load_dotenv()
 
-def fetch_ratio(symbol1, symbol2, period="7d"):
+FNG_API_KEY = os.getenv("FNG_API_KEY")
+
+def get_fear_and_greed_score():
     try:
-        end = datetime.datetime.now()
-        start = end - datetime.timedelta(days=7)
-        s1 = yf.download(symbol1, start=start, end=end, progress=False)["Close"]
-        s2 = yf.download(symbol2, start=start, end=end, progress=False)["Close"]
-        ratio = (s1 / s2).dropna()
-        return ratio
+        response = requests.get(
+            "https://api.alternative.me/fng/",
+            params={"limit": 1, "format": "json", "api_key": FNG_API_KEY},
+            timeout=10
+        )
+        data = response.json()
+        value = int(data["data"][0]["value"])
+        return value
     except Exception as e:
-        logger.warning(f"[WARNING] Failed to fetch ratio {symbol1}/{symbol2}: {e}")
+        print(f"Error fetching Fear & Greed Index: {e}")
         return None
 
-def get_fear_greed_index():
-    try:
-        url = "https://fear-and-greed-index.p.rapidapi.com/v1/fgi"
-        headers = {
-            "X-RapidAPI-Key": "YOUR_RAPIDAPI_KEY",  # Replace this with your real key
-            "X-RapidAPI-Host": "fear-and-greed-index.p.rapidapi.com"
-        }
-        response = requests.get(url, headers=headers)
-        data = response.json()
-        value = int(data["fgi"]["now"]["value"])
-        label = data["fgi"]["now"]["valueText"]
-        return value, label
-    except Exception as e:
-        logger.warning(f"[WARNING] Fear & Greed index fetch failed: {e}")
-        return None, None
-
-def score_sentiment():
+def calculate_sentiment_score(metrics: dict) -> str:
+    """
+    Accepts a dict with the following keys:
+    - btc_vix_ratio: float
+    - vix_level: float
+    - put_call_ratio: float
+    - hyg_lqd_trend: str ("up", "down", or "flat")
+    - spx_dxy_ratio: float
+    """
     score = 0
-    reasons = []
+    breakdown = []
 
     # BTC/VIX
-    btc_vix = fetch_ratio("BTC-USD", "^VIX")
-    if btc_vix is not None and len(btc_vix) >= 2:
-        change = btc_vix.iloc[-1] - btc_vix.iloc[0]
-        if change > 0:
-            score += 1
-            reasons.append("BTC/VIX rising")
-        else:
-            score -= 1
-            reasons.append("BTC/VIX falling")
+    if metrics["btc_vix_ratio"] > 0.5:
+        score += 1
+        breakdown.append("↑ BTC/VIX")
+    else:
+        score -= 1
+        breakdown.append("↓ BTC/VIX")
 
-    # SPX/DXY
-    spx_dxy = fetch_ratio("^GSPC", "DX-Y.NYB")
-    if spx_dxy is not None and len(spx_dxy) >= 2:
-        change = spx_dxy.iloc[-1] - spx_dxy.iloc[0]
-        if change > 0:
-            score += 1
-            reasons.append("SPX/DXY rising")
-        else:
-            score -= 1
-            reasons.append("SPX/DXY falling")
+    # VIX Level
+    if metrics["vix_level"] < 14:
+        score += 1
+        breakdown.append("🟢 Low VIX")
+    elif metrics["vix_level"] > 20:
+        score -= 1
+        breakdown.append("🔴 High VIX")
 
-    # HYG/LQD
-    hyg_lqd = fetch_ratio("HYG", "LQD")
-    if hyg_lqd is not None and len(hyg_lqd) >= 2:
-        change = hyg_lqd.iloc[-1] - hyg_lqd.iloc[0]
-        if change > 0:
-            score += 1
-            reasons.append("HYG/LQD rising")
-        else:
-            score -= 1
-            reasons.append("HYG/LQD falling")
+    # Put/Call Ratio
+    if metrics["put_call_ratio"] < 0.8:
+        score += 1
+        breakdown.append("🟢 Bullish Put/Call")
+    elif metrics["put_call_ratio"] > 1.0:
+        score -= 1
+        breakdown.append("🔴 Bearish Put/Call")
 
-    # VIX level
-    try:
-        vix = yf.Ticker("^VIX").history(period="2d")["Close"].iloc[-1]
-        if vix < 15:
-            score += 1
-            reasons.append("VIX low")
-        elif vix > 20:
-            score -= 1
-            reasons.append("VIX high")
-    except Exception as e:
-        logger.warning(f"[WARNING] Failed to fetch VIX: {e}")
+    # HYG/LQD Trend
+    trend = metrics["hyg_lqd_trend"]
+    if trend == "up":
+        score += 1
+        breakdown.append("↑ HYG/LQD")
+    elif trend == "down":
+        score -= 1
+        breakdown.append("↓ HYG/LQD")
 
-    # Put/Call ratio
-    try:
-        put_call = yf.Ticker("^PUTCALL").history(period="2d")["Close"].iloc[-1]
-        if put_call < 0.75:
-            score += 1
-            reasons.append("Put/Call low (bullish)")
-        elif put_call > 1.0:
-            score -= 1
-            reasons.append("Put/Call high (bearish)")
-    except Exception as e:
-        logger.warning(f"[WARNING] Failed to fetch Put/Call: {e}")
+    # SPX/DXY Ratio
+    if metrics["spx_dxy_ratio"] > 1.5:
+        score += 1
+        breakdown.append("↑ SPX/DXY")
+    else:
+        score -= 1
+        breakdown.append("↓ SPX/DXY")
 
     # Fear & Greed Index
-    fgi_val, fgi_label = get_fear_greed_index()
-    if fgi_val is not None:
-        if fgi_val >= 70:
+    fng_score = get_fear_and_greed_score()
+    if fng_score is not None:
+        if fng_score > 60:
             score += 1
-        elif fgi_val <= 30:
+            breakdown.append("🟢 High F&G")
+        elif fng_score < 40:
             score -= 1
-        reasons.append(f"Fear & Greed Index: {fgi_val} ({fgi_label})")
+            breakdown.append("🔴 Low F&G")
+        else:
+            breakdown.append("🟡 Neutral F&G")
 
-    emoji = "🟢" if score > 1 else "🟡" if -1 <= score <= 1 else "🔴"
-    label = "Risk-On" if score > 1 else "Neutral" if -1 <= score <= 1 else "Risk-Off"
-    header = f"{emoji} {score:+d} {label} (Range: -5 to +5)"
+    # Final Sentiment
+    if score >= 3:
+        symbol = "🟢"
+        label = "Risk-On"
+    elif score <= -3:
+        symbol = "🔴"
+        label = "Risk-Off"
+    else:
+        symbol = "🟡"
+        label = "Neutral"
 
-    return header, reasons
+    return f"{symbol} {score:+} {label} (Range: -5 to +5) | " + ", ".join(breakdown)
