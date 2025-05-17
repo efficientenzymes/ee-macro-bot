@@ -4,6 +4,9 @@ import os
 def generate_narrative_heatmap(chart_summaries, sentiment_summary, liquidity_summary, correlation_lines):
     openai.api_key = os.getenv("OPENAI_API_KEY")
 
+    joined_corr = "\n".join(correlation_lines)
+    joined_charts = "\n".join(chart_summaries)
+
     prompt = f'''
 You're a macro strategist writing a weekend memo.
 
@@ -16,10 +19,10 @@ Below is this week's context:
 {liquidity_summary}
 
 🔗 Correlation Changes:
-{"\\n".join(correlation_lines)}
+{joined_corr}
 
 📊 Spread Commentary:
-{"\\n".join(chart_summaries)}
+{joined_charts}
 
 Based on this, identify the dominant macro narratives for the week.
 Split into two categories:
