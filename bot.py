@@ -29,6 +29,65 @@ intents = discord.Intents.default()
 intents.messages = True
 intents.guilds = True
 intents.message_content = True
+
+def generate_daily_macro_message():
+    eastern = pytz.timezone("US/Eastern")
+    now = datetime.now(eastern)
+    today = now.strftime("%A, %B %d")
+
+    macro_events = get_macro_events_for_today()
+    earnings = get_earnings_for_today()
+    sentiment = get_sentiment_summary()
+
+    try:
+        chart_output = generate_all_charts()
+    except Exception as e:
+        logger.error(f"[ERROR] Chart generation failed: {e}")
+        chart_output = []
+
+    lines = [f"📅 **What to Watch Today – {today}**"]
+
+    if macro_events:
+        lines.append("🗓️ Economic Events:")
+        lines.extend(f"• {e}" for e in macro_events)
+    else:
+        lines.append("🗓️ Economic Events:\n• None")
+
+    lines.append("\n💰 Earnings Highlights:")
+    if earnings:
+        lines.extend(f"• {e}" for e in earnings)
+    else:
+        lines.append("• None scheduled")
+
+    lines.append("\n📊 Sentiment Snapshot:")
+    lines.append(f"• VIX: {sentiment['vix']} ({sentiment['vix_level']})")
+    lines.append(f"• MOVE: {sentiment['move']} ({sentiment['move_level']})")
+    lines.append(f"• Put/Call: {sentiment['put_call']} ({sentiment['put_call_level']})")
+
+    try:
+        spread_metrics = extract_sentiment_metrics_from_chart_output(chart_output)
+        score_summary = calculate_sentiment_score({
+            "btc_vix_ratio": spread_metrics["btc_vix_ratio"],
+            "vix_level": float(sentiment["vix"]),
+            "put_call_ratio": float(sentiment["put_call"]),
+            "hyg_lqd_trend": spread_metrics["hyg_lqd_trend"],
+            "spx_dxy_ratio": spread_metrics["spx_dxy_ratio"]
+        })
+        lines.append(f"\n🧠 Sentiment Summary:\n{score_summary}")
+    except Exception as e:
+        logger.error(f"[ERROR] Sentiment scoring failed: {e}")
+        lines.append("\n🧠 Sentiment Summary: Unavailable")
+
+    try:
+        blurb = generate_positioning_blurb(macro_events, sentiment)
+        lines.append(f"\n🎯 {blurb}")
+    except Exception as e:
+        logger.warning(f"[WARNING] Positioning blurb failed: {e}")
+        lines.append("\n🎯 Positioning summary unavailable")
+
+    return chart_output, "\n".join(lines), score_summary
+
+
 client = discord.Client(intents=intents)
 
 @client.event
